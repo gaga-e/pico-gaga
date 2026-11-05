@@ -75,9 +75,6 @@ function setupOnScreenControls() {
 function toggleTouchControls() {
     const ctrl = document.getElementById("onScreenControls");
     if (!ctrl) return;
-    if (ctrl.style.display === "none" || !ctrl.style.display) {
-        ctrl.style.display = "flex";
-    } else {
-        ctrl.style.display = "none";
-    }
+    const isHidden = window.getComputedStyle(ctrl).display === "none";
+    ctrl.style.display = isHidden ? "flex" : "none";
 }

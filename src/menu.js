@@ -1,17 +1,19 @@
 function startGame() {
     document.getElementById("c").style.display = "";
     document.getElementById("menu").style.display = "none";
-    
+    document.body.classList.add("in-game");
+
     var restartWrap = document.getElementById("restartLevelWrap");
     if (restartWrap) restartWrap.style.display = "";
     
     var restartBtn = document.getElementById("restartLevel");
     if (restartBtn) restartBtn.style.display = "";
 
-    // Show touch controls on mobile or automatically when game starts
+    // Touch controls: only shown on mobile/touch screens, completely hidden on desktop
     var touchControls = document.getElementById("onScreenControls");
+    const isMobile = window.innerWidth <= 900 || (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
     if (touchControls) {
-        touchControls.style.display = "flex";
+        touchControls.style.display = isMobile ? "flex" : "none";
     }
 
     if (!mainGame.matter.running) {
@@ -29,6 +31,7 @@ function startGame() {
 function hideGame() {
     document.getElementById("menu").style.display = "";
     document.getElementById("c").style.display = "none";
+    document.body.classList.remove("in-game");
     var touchControls = document.getElementById("onScreenControls");
     if (touchControls) touchControls.style.display = "none";
 }

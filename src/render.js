@@ -81,6 +81,11 @@ class Renderer {
                     (this.canvas.height/(this.levelBounds.size.y+(this.border)))
                 )
                 
+            const isMobile = window.innerWidth <= 900 || (window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+            if (isMobile) {
+                const isPortrait = window.innerHeight > window.innerWidth;
+                minScale = minScale * (isPortrait ? 1.85 : 1.4);
+            }
             this.globalScale = minScale
         }
     }
@@ -100,7 +105,22 @@ class Renderer {
         self.clearCanvas()
         self.renderBackground()
         self.ctx.save()
-        self.ctx.translate(((self.offset.x)*this.globalScale)+(window.innerWidth*0.5),((self.offset.y)*this.globalScale)+(window.innerHeight*0.5))
+        const isMobile = window.innerWidth <= 900 || (window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+        let camOffsetX = self.offset.x;
+        let camOffsetY = self.offset.y;
+        if (isMobile && self.levelBounds) {
+            const levelWidth = self.levelBounds.size.x;
+            const halfScreenWorld = (window.innerWidth * 0.5) / self.globalScale;
+            if (levelWidth > halfScreenWorld * 2 && self.game.players && self.game.players[0] && self.game.players[0].body) {
+                let playerX = self.game.players[0].body.position.x;
+                let clampedCamX = Math.max(halfScreenWorld, Math.min(levelWidth - halfScreenWorld, playerX));
+                camOffsetX = 25 - clampedCamX;
+            }
+            if (window.innerHeight > window.innerWidth) {
+                camOffsetY -= 40;
+            }
+        }
+        self.ctx.translate(((camOffsetX)*this.globalScale)+(window.innerWidth*0.5),((camOffsetY)*this.globalScale)+(window.innerHeight*0.5))
         self.ctx.scale(this.globalScale,this.globalScale)
         self.renderLevel(self.game.levelHandler)
         self.renderConstraints()
