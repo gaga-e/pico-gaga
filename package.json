@@ -1,0 +1,12 @@
+{
+  "name": "pico-park-web",
+  "version": "1.0.0",
+  "description": "Multiplayer Pico Park Web Co-op Clone",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": ["pico-park", "multiplayer", "webrtc", "game"],
+  "author": "",
+  "license": "MIT"
+}

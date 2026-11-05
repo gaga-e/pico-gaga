@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <script src="./libs/common.js"></script>
+    <script src="./libs/matter.min.js"></script>
+    <script src="./libs/matterjsRaycast.js"></script>
+    <script src="./libs/peer.js"></script>
+    <script src="libs/words.js"></script>
+
+    <link rel="icon" href="./assets/imgs/favicon.png">
+    <title id="title">Pico Park Web Co-op</title>
+
+    <style>
+        @font-face {
+            font-family: squareforced;
+            src: local('FORCEDSQUARE'), url(./assets/FORCEDSQUARE.ttf) format('truetype');
+        }
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #111;
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        .overlay {
+            position: fixed;
+            top: 10px;
+            left: 12px;
+            z-index: 10;
+            background: rgba(0,0,0,0.65);
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .overlay a {
+            color: #4ade80;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .overlay a:hover {
+            text-decoration: underline;
+        }
+        .controls-hint {
+            position: fixed;
+            bottom: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.75);
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-size: 13px;
+            color: #e2e8f0;
+            pointer-events: none;
+            z-index: 10;
+            text-align: center;
+        }
+        #menu {
+            max-width: 480px;
+            margin: 80px auto;
+            background: #1e293b;
+            padding: 24px 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+        #menu h2 {
+            margin-top: 0;
+            color: #38bdf8;
+        }
+        .room-badge {
+            display: inline-block;
+            background: #0284c7;
+            color: white;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 24px;
+            letter-spacing: 2px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .btn {
+            background: #22c55e;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 6px 4px;
+            transition: 0.2s background;
+        }
+        .btn:hover {
+            background: #16a34a;
+        }
+        .btn-secondary {
+            background: #475569;
+        }
+        .btn-secondary:hover {
+            background: #334155;
+        }
+        #memberList {
+            margin: 15px auto;
+            padding: 10px;
+            background: #0f172a;
+            border-radius: 8px;
+            text-align: left;
+            max-height: 140px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <script>
+        var url = location.href,
+            urlData = url.split("?").splice(-1,1)
+
+        data = {}
+        urlData.forEach((e)=>{
+            if (e.includes("=")) {
+                data[e.split("=")[0]] = e.split("=")[1]
+            }
+        })
+
+        urlData = data
+    </script>
+
+    <canvas id="c" style="display: none;"></canvas>
+    <div class="overlay">
+        <a href="./index.html">← Back to Lobby</a> 
+        <span id="restartLevelWrap" style="display: none;"> | 
+            <a id="restartLevel" href="#" onClick="(function(){
+                if (mainGame && mainGame.levelHandler && mainGame.levelHandler.currentLevel) {
+                    mainGame.levelHandler.setLevel(mainGame.levelHandler.currentLevel.name);
+                }
+                return false;
+            })();return false;">Restart Level</a>
+        </span>
+    </div>
+
+    <div class="controls-hint">
+        🎮 <b>Controls:</b> Arrow Keys to Move & Jump (<b>↑</b>) | When door opens, press <b>↓ (DOWN)</b> to enter!
+    </div>
+
+    <script src="./src/multiplayer.js"></script>
+    <script src="./src/buttons.js"></script>
+    <script src="./src/door.js"></script>
+    <script src="./src/trigger.js"></script>
+    <script src="./src/blocks.js"></script>
+    <script src="./src/lasers.js"></script>
+    <script src="./src/jumppad.js"></script>
+
+    <script src="./src/levels.js"></script>
+    <script src="./src/level.js"></script>
+
+    <script src="./src/matterInit.js"></script>
+    <script src="./src/atlasSetup.js"></script>
+
+    <script src="src/syncController.js"></script>
+
+    <script src="./src/controls.js"></script>
+    <script src="./src/update.js"></script>
+
+    <script src="./src/player.js"></script>
+    <script src="./src/render.js"></script>
+
+    <script src="./src/entity.js"></script>
+    <script src="src/particles.js"></script>
+
+    <script src="./src/game.js"></script>
+
+    <script src="./src/constraints.js"></script>
+
+    <script src="./src/host.js"></script>
+    <script src="./src/client.js"></script>
+
+    <script src="./src/menu.js"></script>
+
+    <div id="menu">
+        <div id="host" style="display: none;">
+            <h2>Hosting Room</h2>
+            <div>Room Code:</div>
+            <div class="room-badge" id="roomCode">FETCHING...</div>
+            <span id="incoming" style="font-size: 13px; color: #38bdf8;"></span>
+            <br>
+            <button class="btn btn-secondary" id="copyLink" onclick="(function(){
+                const link = `${window.location.origin}${window.location.pathname}?join=${hostConnection.code}`;
+                navigator.clipboard.writeText(link);
+                alert('Copied invite link to clipboard:\n' + link);
+                return false;
+            })();return false;">📋 Copy Invite Link</button>
+
+            <div id="memberList">
+                <b style="color: #38bdf8;">Players Joined:</b>
+                <div id="memberlist"></div>
+                <div>👑 Host (You)</div>
+            </div>
+
+            <button class="btn btn-secondary" onClick="(function(){
+                mainGame.playerhandler.addPlayer({
+                    controls:['a','d','w','s'],
+                    keys:keys,
+                    color:mainGame.fetchColor(),
+                });
+                addPlayerToMenu('Player 2 (Local WASD)');
+                return false;
+            })();return false;">+ Add Local Co-op Player</button>
+            <br>
+            <button class="btn" style="font-size: 18px; padding: 12px 30px; margin-top: 14px;" onClick="(function(){
+                startGame();
+                if (hostConnection) {
+                    hostConnection.broadcast(JSON.stringify({
+                        startGame:true,
+                    }));
+                }
+                return false;
+            })();return false;">🚀 START GAME</button>
+        </div>
+
+        <div id="join" style="display: none; padding: 30px 10px;">
+            <h3>Connecting to room...</h3>
+            <p>Waiting for host to accept and start the game.</p>
+        </div>
+    </div>
+
+    <script>
+        window.localfile = location.protocol=="file:"
+        function initGame() {
+            window.mainGame = new Game()
+
+            var player1 = mainGame.playerhandler.addPlayer({
+                controls:["arrowleft","arrowright","arrowup","arrowdown"],
+                keys:keys,
+            }) 
+
+            window.hostConnection = null;
+            window.clientConnection = null;
+
+            if (urlData.host) {
+                hostConnection = new Host(mainGame);
+                hostConnection.init();
+            }
+            if (urlData.join) {
+                clientConnection = new Client(mainGame, player1);
+                clientConnection.init(urlData.join);
+                document.getElementById("restartLevelWrap").style.display = "none";
+            }
+            if (!urlData.host && !urlData.join) {
+                startGame();
+            }
+
+            setInterval(() => {
+                if (window.hostConnection) hostConnection.updateClients();
+                if (window.clientConnection) clientConnection.updateHost();
+            }, 10);
+
+            setInterval(() => {
+                mainGame.players.forEach((e)=>{
+                    if(!e.onlinePlayer) e.updateKeys(keys);
+                });
+            }, 5);
+        }
+
+        function startMainGame() {
+            mainGame.testInit();
+            mainGame.initRender();
+        }
+
+        window.onload = () => {
+            _loadFont("squareforced");
+
+            if (urlData.host) {
+                document.getElementById("host").style.display = "";
+            } else if (urlData.join) {
+                document.getElementById("join").style.display = "";
+            }
+
+            initGame();
+
+            let tempLevel = localStorage.getItem("tempLevel");
+            if (tempLevel != null) {
+                let levelString = `({${atob(tempLevel)}})`;
+                document.getElementById("roomCode").innerHTML = "TEMP LEVEL";
+                document.getElementById("title").textContent = "temp-level";
+                document.getElementById("copyLink").style.display = "none";
+                levels.tempLevel = eval(levelString)["tempName"];
+                mainGame.runTemp = true;
+                localStorage.removeItem("tempLevel");
+            }
+        }
+
+        function setLevel(lvl) {
+            mainGame.renderer.levelTransistion(lvl);
+            if (window.hostConnection) {
+                hostConnection.broadcast(JSON.stringify({
+                    setLevel: lvl,
+                }));
+            }
+        }
+    </script>
+</body>
+</html>
