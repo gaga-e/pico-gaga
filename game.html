@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     
     <script src="./libs/common.js"></script>
     <script src="./libs/matter.min.js"></script>
@@ -24,12 +24,15 @@
             background: #111;
             color: #fff;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
         }
         .overlay {
             position: fixed;
             top: 10px;
             left: 12px;
-            z-index: 10;
+            z-index: 100;
             background: rgba(0,0,0,0.65);
             padding: 8px 14px;
             border-radius: 6px;
@@ -45,17 +48,16 @@
         }
         .controls-hint {
             position: fixed;
-            bottom: 12px;
-            left: 50%;
-            transform: translateX(-50%);
+            top: 12px;
+            right: 12px;
             background: rgba(0,0,0,0.75);
-            padding: 8px 18px;
-            border-radius: 20px;
-            font-size: 13px;
+            padding: 6px 14px;
+            border-radius: 16px;
+            font-size: 12px;
             color: #e2e8f0;
             pointer-events: none;
-            z-index: 10;
-            text-align: center;
+            z-index: 100;
+            text-align: right;
         }
         #menu {
             max-width: 480px;
@@ -111,6 +113,104 @@
             max-height: 140px;
             overflow-y: auto;
         }
+
+        /* On-Screen Touch Controls */
+        #onScreenControls {
+            position: fixed;
+            bottom: 24px;
+            left: 0;
+            width: 100%;
+            box-sizing: border-box;
+            padding: 0 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            pointer-events: none;
+            z-index: 9999;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .touch-group {
+            display: flex;
+            gap: 16px;
+            pointer-events: auto;
+        }
+        .touch-btn {
+            width: 74px;
+            height: 74px;
+            background: rgba(30, 41, 59, 0.85);
+            border: 2px solid rgba(255, 255, 255, 0.35);
+            color: #ffffff;
+            font-size: 26px;
+            font-weight: bold;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            transition: transform 0.06s ease, background 0.06s ease;
+        }
+        .touch-btn:active, .touch-btn.touch-active {
+            background: rgba(56, 189, 248, 0.95) !important;
+            transform: scale(0.92);
+            border-color: #ffffff;
+        }
+        .touch-btn-jump {
+            width: 82px;
+            height: 82px;
+            border-radius: 50%;
+            background: rgba(34, 197, 94, 0.85);
+            font-size: 15px;
+            letter-spacing: 1px;
+            border-color: rgba(134, 239, 172, 0.6);
+        }
+        .touch-btn-jump:active, .touch-btn-jump.touch-active {
+            background: rgba(22, 163, 74, 1) !important;
+        }
+        .touch-btn-down {
+            width: 74px;
+            height: 74px;
+            background: rgba(168, 85, 247, 0.85);
+            font-size: 13px;
+            letter-spacing: 1px;
+            border-color: rgba(216, 180, 254, 0.6);
+        }
+        .touch-btn-down:active, .touch-btn-down.touch-active {
+            background: rgba(147, 51, 234, 1) !important;
+        }
+        .touch-subtext {
+            font-size: 10px;
+            opacity: 0.85;
+            margin-top: 2px;
+            text-transform: uppercase;
+        }
+        @media (max-width: 600px) {
+            #onScreenControls {
+                bottom: 16px;
+                padding: 0 14px;
+            }
+            .touch-btn {
+                width: 66px;
+                height: 66px;
+                font-size: 22px;
+            }
+            .touch-btn-jump {
+                width: 76px;
+                height: 76px;
+            }
+            .touch-btn-down {
+                width: 66px;
+                height: 66px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -130,6 +230,7 @@
     </script>
 
     <canvas id="c" style="display: none;"></canvas>
+    
     <div class="overlay">
         <a href="./index.html">← Back to Lobby</a> 
         <span id="restartLevelWrap" style="display: none;"> | 
@@ -140,10 +241,36 @@
                 return false;
             })();return false;">Restart Level</a>
         </span>
+        | <a href="#" onclick="toggleTouchControls(); return false;">📱 Toggle Keys</a>
     </div>
 
     <div class="controls-hint">
-        🎮 <b>Controls:</b> Arrow Keys to Move & Jump (<b>↑</b>) | When door opens, press <b>↓ (DOWN)</b> to enter!
+        🎮 <b>Controls:</b> ◀ ▶ Move | ▲ Jump | ▼ Enter Door
+    </div>
+
+    <!-- On-screen mobile touch D-Pad & Actions -->
+    <div id="onScreenControls" style="display: none;">
+        <div class="touch-group">
+            <button class="touch-btn" id="btnLeft">
+                <span>◀</span>
+                <span class="touch-subtext">Left</span>
+            </button>
+            <button class="touch-btn" id="btnRight">
+                <span>▶</span>
+                <span class="touch-subtext">Right</span>
+            </button>
+        </div>
+
+        <div class="touch-group">
+            <button class="touch-btn touch-btn-down" id="btnDown">
+                <span>▼</span>
+                <span class="touch-subtext">Door</span>
+            </button>
+            <button class="touch-btn touch-btn-jump" id="btnJump">
+                <span>▲</span>
+                <span class="touch-subtext">Jump</span>
+            </button>
+        </div>
     </div>
 
     <script src="./src/turn-config.js"></script>
@@ -273,6 +400,7 @@
 
         window.onload = () => {
             _loadFont("squareforced");
+            setupOnScreenControls();
 
             if (urlData.host) {
                 document.getElementById("host").style.display = "";
