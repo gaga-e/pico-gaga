@@ -57,6 +57,15 @@ class Host {
     handleNewClient(conn) {
         const incomingEl = document.getElementById("incoming");
         if (incomingEl) incomingEl.textContent = " (Player joining...)";
+        console.log("Incoming client:", conn.peer);
+        const attachIce = (tries = 0) => {
+            const pc = conn.peerConnection;
+            if (!pc) { if (tries < 20) setTimeout(() => attachIce(tries + 1), 250); return; }
+            pc.addEventListener("iceconnectionstatechange", () => {
+                console.log("Host ICE with", conn.peer, ":", pc.iceConnectionState);
+            });
+        };
+        attachIce();
 
         conn.on("open", () => {
             console.log("Client data channel open:", conn.peer);

@@ -32,6 +32,28 @@ class Client {
             console.log("Client local peer created:", id);
             this.conn = this.peer.connect(targetPeerId, { reliable: true });
 
+            // Diagnostics: show WebRTC negotiation state so stalls are visible
+            const attachIceLogging = (tries = 0) => {
+                const pc = this.conn && this.conn.peerConnection;
+                if (!pc) {
+                    if (tries < 20) setTimeout(() => attachIceLogging(tries + 1), 250);
+                    return;
+                }
+                const report = () => {
+                    console.log("ICE:", pc.iceConnectionState, "| gathering:", pc.iceGatheringState, "| signaling:", pc.signalingState);
+                    if (!this.connected && joinEl) {
+                        joinEl.innerHTML = `Connecting to room <b>${roomCode}</b>...<br><small style="color:#94a3b8">network: ${pc.iceConnectionState}</small>`;
+                    }
+                };
+                pc.addEventListener("iceconnectionstatechange", report);
+                pc.addEventListener("icegatheringstatechange", report);
+                pc.addEventListener("icecandidate", (e) => {
+                    if (e.candidate) console.log("candidate:", e.candidate.type, e.candidate.protocol, e.candidate.address || "");
+                });
+                report();
+            };
+            attachIceLogging();
+
             // Surface a clear error instead of hanging on "Connecting..." forever
             this.connectTimer = setTimeout(() => {
                 if (!this.connected && joinEl) {
