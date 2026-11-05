@@ -1,17 +1,23 @@
-// Shared WebRTC ICE config: STUN for direct paths + public TURN relays as fallback
-// for players behind strict NATs / on different networks.
-const ICE_CONFIG = {
-  iceServers: [
+// Shared WebRTC ICE config: STUN for direct paths + TURN relay (needs your credentials in turn-config.js)
+// for players on different networks / mobile data (symmetric NAT).
+const ICE_CONFIG = (function () {
+  const servers = [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:global.stun.twilio.com:3478' },
-    { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
-    { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
-    { urls: 'turns:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
-  ],
-  iceCandidatePoolSize: 4
-};
-// Helper functions for serializing and deserializing player state across peers
+    { urls: 'stun:global.stun.twilio.com:3478' }
+  ];
+  const t = window.TURN_CONFIG;
+  if (t && t.username && t.credential) {
+    ['turn:standard.relay.metered.ca:80',
+     'turn:standard.relay.metered.ca:80?transport=tcp',
+     'turn:standard.relay.metered.ca:443',
+     'turns:standard.relay.metered.ca:443?transport=tcp'
+    ].forEach(u => servers.push({ urls: u, username: t.username, credential: t.credential }));
+  } else {
+    console.warn('No TURN credentials set in src/turn-config.js - cross-network play may fail.');
+  }
+  return { iceServers: servers, iceCandidatePoolSize: 4 };
+})();
 
 function parsePlayerData(player) {
   return {
