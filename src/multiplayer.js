@@ -1,23 +1,35 @@
-// Shared WebRTC ICE config: STUN for direct paths + TURN relay (needs your credentials in turn-config.js)
-// for players on different networks / mobile data (symmetric NAT).
-const ICE_CONFIG = (function () {
-  const servers = [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:global.stun.twilio.com:3478' }
-  ];
-  const t = window.TURN_CONFIG;
-  if (t && t.username && t.credential) {
-    ['turn:standard.relay.metered.ca:80',
-     'turn:standard.relay.metered.ca:80?transport=tcp',
-     'turn:standard.relay.metered.ca:443',
-     'turns:standard.relay.metered.ca:443?transport=tcp'
-    ].forEach(u => servers.push({ urls: u, username: t.username, credential: t.credential }));
-  } else {
-    console.warn('No TURN credentials set in src/turn-config.js - cross-network play may fail.');
-  }
-  return { iceServers: servers, iceCandidatePoolSize: 4 };
-})();
+// Shared WebRTC ICE config with Metered.ca TURN relay for cross-network & mobile data play
+const ICE_CONFIG = {
+  iceServers: [
+    {
+      urls: "stun:stun.relay.metered.ca:80",
+    },
+    {
+      urls: "stun:stun.l.google.com:19302",
+    },
+    {
+      urls: "turn:standard.relay.metered.ca:80",
+      username: "09655e50c631521390b28117",
+      credential: "80bbUxe9CA/X07cd",
+    },
+    {
+      urls: "turn:standard.relay.metered.ca:80?transport=tcp",
+      username: "09655e50c631521390b28117",
+      credential: "80bbUxe9CA/X07cd",
+    },
+    {
+      urls: "turn:standard.relay.metered.ca:443",
+      username: "09655e50c631521390b28117",
+      credential: "80bbUxe9CA/X07cd",
+    },
+    {
+      urls: "turns:standard.relay.metered.ca:443?transport=tcp",
+      username: "09655e50c631521390b28117",
+      credential: "80bbUxe9CA/X07cd",
+    },
+  ],
+  iceCandidatePoolSize: 4
+};
 
 function parsePlayerData(player) {
   return {

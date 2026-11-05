@@ -1,6 +1,5 @@
-// Paste your free TURN credentials here (see README / chat instructions).
-// Get them at https://www.metered.ca/tools/openrelay/ (free account) -> dashboard -> TURN credentials.
+// TURN credentials from Metered.ca for cross-network WebRTC play
 window.TURN_CONFIG = {
-  username: "",
-  credential: ""
+  username: "09655e50c631521390b28117",
+  credential: "80bbUxe9CA/X07cd"
 };
