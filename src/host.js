@@ -19,12 +19,7 @@ class Host {
         // Create Peer with public PeerJS cloud broker
         this.peer = new Peer(this.peerId, {
             debug: 1,
-            config: {
-                iceServers: [
-                    { urls: 'stun:stun.l.google.com:19302' },
-                    { urls: 'stun:global.stun.twilio.com:3478' }
-                ]
-            }
+            config: ICE_CONFIG
         });
 
         this.peer.on("open", (id) => {
@@ -46,6 +41,11 @@ class Host {
                 console.log("Retrying with new code:", this.code);
                 this.init();
             }
+        });
+
+        this.peer.on("disconnected", () => {
+            console.warn("Host lost signaling server, reconnecting...");
+            if (this.peer && !this.peer.destroyed) this.peer.reconnect();
         });
 
         this.peer.on("connection", (conn) => {

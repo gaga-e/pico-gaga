@@ -25,21 +25,25 @@ class Client {
 
         this.peer = new Peer({
             debug: 1,
-            config: {
-                iceServers: [
-                    { urls: 'stun:stun.l.google.com:19302' },
-                    { urls: 'stun:global.stun.twilio.com:3478' }
-                ]
-            }
+            config: ICE_CONFIG
         });
 
         this.peer.on("open", (id) => {
             console.log("Client local peer created:", id);
             this.conn = this.peer.connect(targetPeerId, { reliable: true });
 
+            // Surface a clear error instead of hanging on "Connecting..." forever
+            this.connectTimer = setTimeout(() => {
+                if (!this.connected && joinEl) {
+                    joinEl.innerHTML = `<span style="color:#f87171">Couldn't reach room <b>${roomCode}</b>.</span><br>` +
+                        `Check the code, make sure the host is still on the lobby screen, then <a href="javascript:location.reload()" style="color:#4ade80">retry</a>.`;
+                }
+            }, 20000);
+
             this.conn.on("open", () => {
                 console.log("Connected directly to Host!");
                 this.connected = true;
+                clearTimeout(this.connectTimer);
                 if (joinEl) {
                     joinEl.innerHTML = `Connected to room <b>${roomCode}</b>!<br><br>Waiting for host to start game...`;
                 }
