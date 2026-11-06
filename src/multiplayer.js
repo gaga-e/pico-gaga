@@ -33,7 +33,8 @@ const ICE_CONFIG = {
 
 function parsePlayerData(player) {
   return {
-    position: player.body.position,
+    position: { x: player.body.position.x, y: player.body.position.y },
+    velocity: { x: player.body.velocity.x, y: player.body.velocity.y },
     id: player.body.id,
     direction: player.direction,
     keys: player.keys,
@@ -48,18 +49,47 @@ function parsePlayerData(player) {
 
 function setPlayerWithData(player, data, updatePhysics = true) {
   if (!player || !player.body || !data) return;
+
   if (updatePhysics && data.position) {
-    Matter.Body.setPosition(player.body, data.position);
-    player.direction = data.direction;
+    const cur = player.body.position;
+    const dx = data.position.x - cur.x;
+    const dy = data.position.y - cur.y;
+    const distSq = dx * dx + dy * dy;
+
+    // Hard-snap on large jumps (spawns, teleports, level transitions > 65px)
+    if (distSq > 4225) {
+      Matter.Body.setPosition(player.body, data.position);
+      if (data.velocity) {
+        Matter.Body.setVelocity(player.body, data.velocity);
+      }
+    } else if (distSq > 0.04) {
+      // Smooth lerp interpolation to eliminate high-frequency micro-twitching
+      const lerp = 0.45;
+      Matter.Body.setPosition(player.body, {
+        x: cur.x + dx * lerp,
+        y: cur.y + dy * lerp
+      });
+      if (data.velocity) {
+        Matter.Body.setVelocity(player.body, {
+          x: player.body.velocity.x * (1 - lerp) + data.velocity.x * lerp,
+          y: player.body.velocity.y * (1 - lerp) + data.velocity.y * lerp
+        });
+      }
+    }
+
+    if (data.direction !== undefined) {
+      player.direction = data.direction;
+    }
   }
+
   if (data.keys) {
     player.updateKeys(data.keys);
   }
-  player.color = data.color;
-  player.frame = data.frame;
-  player.ready = data.ready;
-  player.hasShield = data.shields;
-  player.dead = data.dead;
+  if (data.color) player.color = data.color;
+  if (data.frame) player.frame = data.frame;
+  if (data.ready !== undefined) player.ready = data.ready;
+  if (data.shields) player.hasShield = data.shields;
+  if (data.dead !== undefined) player.dead = data.dead;
   if (typeof player.setScale === "function" && data.scale) {
     player.setScale(data.scale);
   }

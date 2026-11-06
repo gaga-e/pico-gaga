@@ -72,9 +72,11 @@ class Game {
         this.deltaTime = 0
     }
     updateDelta() {
-        this.deltaTime = Math.min(((new Date()).getTime()-this.lastDelta)/(1000/60), 10)
-        this.lastDelta = (new Date()).getTime()
-
+        let now = (new Date()).getTime();
+        if (!this.lastDelta) this.lastDelta = now;
+        let delta = (now - this.lastDelta) / (1000 / 60);
+        this.deltaTime = Math.max(0.5, Math.min(delta, 1.8));
+        this.lastDelta = now;
     }
     
 
@@ -133,11 +135,19 @@ class Game {
             }
             let key = d
             
-            let foundEnt = check(key.id)
+            let foundEnt = check(key.id);
             if (foundEnt) {
-                let ent = foundEnt
-                ent.pos = key.pos
-                ent.vel = key.vel
+                let ent = foundEnt;
+                let dx = key.pos.x - ent.pos.x;
+                let dy = key.pos.y - ent.pos.y;
+                if (dx * dx + dy * dy > 2500) {
+                    ent.pos.x = key.pos.x;
+                    ent.pos.y = key.pos.y;
+                } else {
+                    ent.pos.x += dx * 0.45;
+                    ent.pos.y += dy * 0.45;
+                }
+                ent.vel = key.vel;
             } else {
                 console.log("create keys")
                 var newKey = new Key(this, v(key.pos.x,key.pos.y), {})
@@ -220,12 +230,20 @@ class Game {
             }
             let key = d
             
-            let foundEnt = check(key.id)
-
+            let foundEnt = check(key.id);
             if (foundEnt) {
-                let ent = foundEnt
-                Matter.Body.setPosition(ent.rect, key.pos)
-                
+                let ent = foundEnt;
+                let cur = ent.rect.position;
+                let dx = key.pos.x - cur.x;
+                let dy = key.pos.y - cur.y;
+                if (dx * dx + dy * dy > 2500) {
+                    Matter.Body.setPosition(ent.rect, key.pos);
+                } else if (dx * dx + dy * dy > 0.04) {
+                    Matter.Body.setPosition(ent.rect, {
+                        x: cur.x + dx * 0.45,
+                        y: cur.y + dy * 0.45
+                    });
+                }
             } else {
                 console.log("create block", key)
                 let block = this.blockHandler.addBlock(v(key.gridPos.x,key.gridPos.y), key.size, key.options)

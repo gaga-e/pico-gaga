@@ -46,6 +46,10 @@ class PlayerHandler {
         if (!player.onlinePlayer && window.keys) {
             player.keys = { ...window.keys };
         }
+        // Remote (online) players are synchronized via network state - do not double-simulate inputs
+        if (player.onlinePlayer) {
+            return;
+        }
         var c = player.controls,
             keys = player.keys
         //if (window.clientConnection) if(window.clientConnection.mainPlayer.body.id==player.body.id) return true
