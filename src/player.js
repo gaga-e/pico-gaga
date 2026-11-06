@@ -166,11 +166,29 @@ class Player {
         })
         this.groundDetector.player = this
         Matter.Body.scale(this.groundDetector, 1.45,0.5)
-        
+
+        this.horizontalDetector = Matter.Bodies.rectangle(
+            this.body.position.x,
+            this.body.position.y,
+            spriteSize.x * 0.98,
+            spriteSize.y * 0.55,
+            {
+                collisionFilter: {
+                    group: -1,
+                    catagory: 2,
+                    mask: 0,
+                },
+                noGravity: true,
+                isSensor: true
+            }
+        )
+        this.horizontalDetector.player = this
+        if (this.game.invalidateCollidables) this.game.invalidateCollidables()
     }
     unload() {
         this.unloading = true
         Matter.Composite.remove(this.game.playerhandler.playerComp, this.body)
+        if (this.game.invalidateCollidables) this.game.invalidateCollidables()
     }
     testForShield() {
         let a = [1,2,3,4]
@@ -318,11 +336,30 @@ class Player {
     }
 
     onGround() {
-        
-        return Matter.Query.collides(this.groundDetector, Matter.Composite.allBodies(this.game.matter.engine.world).filter((a)=>{return a.id!=this.body.id&&a.id!=this.groundDetector.id&&!a.shield})).length>0
+        const bodies = (typeof this.game.getCollidableBodies === "function")
+            ? this.game.getCollidableBodies()
+            : Matter.Composite.allBodies(this.game.matter.engine.world);
+        const hits = Matter.Query.collides(this.groundDetector, bodies);
+        for (let i = 0; i < hits.length; i++) {
+            const other = (hits[i].bodyA.id === this.groundDetector.id) ? hits[i].bodyB : hits[i].bodyA;
+            if (other.id !== this.body.id && other.id !== this.groundDetector.id && !other.shield && !other.isSensor) {
+                return true;
+            }
+        }
+        return false;
     }
     getGround() {
-        return Matter.Query.collides(this.groundDetector, Matter.Composite.allBodies(this.game.matter.engine.world).filter((a)=>{return a.id!=this.body.id&&a.id!=this.groundDetector.id&&!a.shield}))[0]
+        const bodies = (typeof this.game.getCollidableBodies === "function")
+            ? this.game.getCollidableBodies()
+            : Matter.Composite.allBodies(this.game.matter.engine.world);
+        const hits = Matter.Query.collides(this.groundDetector, bodies);
+        for (let i = 0; i < hits.length; i++) {
+            const other = (hits[i].bodyA.id === this.groundDetector.id) ? hits[i].bodyB : hits[i].bodyA;
+            if (other.id !== this.body.id && other.id !== this.groundDetector.id && !other.shield && !other.isSensor) {
+                return hits[i];
+            }
+        }
+        return undefined;
     }
 
     moveHor(dir, multi=false) {
@@ -357,38 +394,40 @@ class Player {
         return Matter.Query.collides(this.body, dectors)
     }
     testPlayerBlockCollision() {
-        Matter.Body.scale(this.body, 1.25,0.5)
+        this.blockingDirection = 0;
+        const px = this.body.position.x;
+        const py = this.body.position.y;
+        const pw = 45 * this.scale;
+        const ph = 40 * this.scale;
 
-        var ret = Matter.Query.collides(this.body, Matter.Composite.allBodies(this.game.matter.engine.world).filter((a)=>{
-            return (
-                a.id!=this.body.id)
-        }))
-        Matter.Body.scale(this.body, 1/1.25,2)
-        this.blockingDirection = 0
-        if (true) ret.forEach(a=>{
-            var altBlock = (a.bodyA.id==this.body.id)?a.bodyB:a.bodyA
-            if (altBlock.block) {
-
-                altBlock.block.pressing[this.body.id] = true
-                this.blockingDirection = Math.sign(altBlock.position.x-this.body.position.x)
-            } else {
-                
+        for (let i = 0; i < this.game.blocks.length; i++) {
+            const blk = this.game.blocks[i];
+            if (!blk.rect || blk.rect.isStatic) continue;
+            const bx = blk.rect.position.x;
+            const by = blk.rect.position.y;
+            const bw = blk.size.x * 50;
+            const bh = blk.size.y * 50;
+            const overlapY = Math.abs(py - by) < (ph + bh) * 0.45;
+            const overlapX = Math.abs(px - bx) < (pw * 0.65 + bw * 0.5);
+            if (overlapY && overlapX) {
+                blk.pressing[this.body.id] = true;
+                this.blockingDirection = Math.sign(bx - px);
             }
-        })
+        }
     }
     testPlayerCollision() {
-        Matter.Body.scale(this.body, 1,0.5)
-        var ret = Matter.Query.collides(this.body, Matter.Composite.allBodies(this.game.matter.engine.world).filter((a)=>{
-            return (
-                a.id!=this.body.id&&
-                ((a.isBlock)?!a.block.locked():true))&&
-                !a.shield
-        }))
-        Matter.Body.scale(this.body, 1,2)
-        
-        
-        
-        return ret.length>0
+        const bodies = (typeof this.game.getCollidableBodies === "function")
+            ? this.game.getCollidableBodies()
+            : Matter.Composite.allBodies(this.game.matter.engine.world);
+        const detector = this.horizontalDetector || this.body;
+        const hits = Matter.Query.collides(detector, bodies);
+        for (let i = 0; i < hits.length; i++) {
+            const other = (hits[i].bodyA.id === detector.id) ? hits[i].bodyB : hits[i].bodyA;
+            if (other.id === this.body.id || other.id === this.groundDetector.id || other.shield || other.isSensor) continue;
+            if (other.isBlock && other.block && other.block.locked()) continue;
+            return true;
+        }
+        return false;
     }
     jump(str=1) {
         if (this.ready) {
@@ -418,6 +457,7 @@ class Player {
 
         
         Matter.Body.setPosition(this.groundDetector, v(this.body.position.x,this.body.position.y+(spriteSize.y*0.5*this.scale)))
+        if (this.horizontalDetector) Matter.Body.setPosition(this.horizontalDetector, v(this.body.position.x, this.body.position.y))
         if (this.laserShields.length>0) {
             for (let i = 0; i < this.laserShields.length; i++) {
                 const sh = this.laserShields[i];
@@ -438,6 +478,7 @@ class Player {
         var scaleFactor = targetScale/this.scale
         Matter.Body.scale(this.body, scaleFactor,scaleFactor)
         Matter.Body.scale(this.groundDetector, scaleFactor,scaleFactor)
+        if (this.horizontalDetector) Matter.Body.scale(this.horizontalDetector, scaleFactor,scaleFactor)
 
         this.scale = targetScale
     }

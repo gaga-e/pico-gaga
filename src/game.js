@@ -70,6 +70,18 @@ class Game {
         this.currentColor = randInt(0,7)
         this.lastDelta = 0
         this.deltaTime = 0
+        this._collidableCache = null;
+        this._collidableCacheDirty = true;
+    }
+    getCollidableBodies() {
+        if (!this._collidableCache || this._collidableCacheDirty) {
+            this._collidableCache = Matter.Composite.allBodies(this.matter.engine.world);
+            this._collidableCacheDirty = false;
+        }
+        return this._collidableCache;
+    }
+    invalidateCollidables() {
+        this._collidableCacheDirty = true;
     }
     updateDelta() {
         let now = (new Date()).getTime();
@@ -115,11 +127,11 @@ class Game {
             let es = []
             for (let i = 0; i < this.entities.length; i++) {
                 const e = this.entities[i];
-                es.push( {
-                    pos:e.pos,
-                    vel:e.vel,
-                    id:e.id,
-                } )
+                es.push({
+                    pos: { x: round1(e.pos.x), y: round1(e.pos.y) },
+                    vel: { x: round1(e.vel.x), y: round1(e.vel.y) },
+                    id: e.id,
+                });
             }
             return es
             
@@ -208,13 +220,13 @@ class Game {
             let es = []
             for (let i = 0; i < this.blocks.length; i++) {
                 const e = this.blocks[i];
-                es.push( {
-                    pos:e.rect.position,
-                    gridPos:e.pos,
-                    size:e.size,
-                    id:e.id,
-                    options:e.options,
-                } )
+                es.push({
+                    pos: { x: round1(e.rect.position.x), y: round1(e.rect.position.y) },
+                    gridPos: e.pos,
+                    size: e.size,
+                    id: e.id,
+                    options: { minPlayers: e.minPlayers || 0, static: !!(e.options && e.options.static) }
+                });
             }
             return es
             

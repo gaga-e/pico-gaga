@@ -38,6 +38,8 @@ class LevelHandler {
         this.game.blockHandler.comp = Matter.Composite.create()
         Matter.Composite.add(this.game.matter.engine.world, this.game.blockHandler.comp)
 
+        if (this.game.invalidateCollidables) this.game.invalidateCollidables()
+
         if (window.hostConnection) {
             window.hostConnection.broadcast(JSON.stringify({restartLevel:true}))
         }

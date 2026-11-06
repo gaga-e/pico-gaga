@@ -34,8 +34,12 @@ class MatterHandler {
   }
 
   init() {
-    Runner.run(this.engine)
-    this.running = true
+    this.runner = Runner.create({
+      isFixed: true,
+      delta: 1000 / 60
+    });
+    Runner.run(this.runner, this.engine);
+    this.running = true;
   }
 
   addBody(pos,size,options,comp=this.engine.world) {

@@ -15,6 +15,7 @@ class Client {
 
     init(roomCode) {
         roomCode = (roomCode || "").trim().toUpperCase();
+        this.roomCode = roomCode;
         const targetPeerId = "picopark-" + roomCode;
         console.log("Client connecting to room:", roomCode, "Target ID:", targetPeerId);
 
@@ -65,7 +66,10 @@ class Client {
             this.conn.on("open", () => {
                 console.log("Connected directly to Host!");
                 this.connected = true;
+                this.reconnectAttempts = 0;
                 clearTimeout(this.connectTimer);
+                const recToast = document.getElementById("reconnectToast");
+                if (recToast) recToast.remove();
                 if (joinEl) {
                     joinEl.innerHTML = `Connected to room <b>${roomCode}</b>!<br><br>Waiting for host to start game...`;
                 }
@@ -74,6 +78,23 @@ class Client {
                 this.conn.send(JSON.stringify({
                     setUsername: this.username
                 }));
+
+                // Live ping & connection quality heartbeat (1.5s)
+                if (this.pingTimer) clearInterval(this.pingTimer);
+                this.pingTimer = setInterval(() => {
+                    if (this.conn && this.conn.open) {
+                        try {
+                            this.conn.send(JSON.stringify({ ping: Date.now() }));
+                        } catch (e) {}
+                        const pc = this.conn.peerConnection;
+                        if (pc && typeof inspectPeerConnection === "function") {
+                            inspectPeerConnection(pc, (info) => {
+                                this.connType = info.type;
+                                if (info.rtt) updateNetworkHUD(info.rtt, info.type);
+                            });
+                        }
+                    }
+                }, 1500);
             });
 
             this.conn.on("data", (raw) => {
@@ -87,13 +108,35 @@ class Client {
 
             this.conn.on("close", () => {
                 console.warn("Connection to host closed");
+                if (this.pingTimer) clearInterval(this.pingTimer);
                 this.connected = false;
-                if (joinEl) {
-                    joinEl.innerHTML = `<span style="color:red">Disconnected from host room.</span> <a href="./index.html">Back to Home</a>`;
+
+                // Automatic mobile reconnect attempts (up to 5 attempts, 2s apart)
+                if ((this.reconnectAttempts || 0) < 5) {
+                    this.reconnectAttempts = (this.reconnectAttempts || 0) + 1;
+                    let toast = document.getElementById("reconnectToast");
+                    if (!toast) {
+                        toast = document.createElement("div");
+                        toast.id = "reconnectToast";
+                        toast.style.cssText = "position:fixed;top:60px;left:50%;transform:translateX(-50%);background:#eab308;color:#000;padding:10px 20px;border-radius:8px;font-weight:bold;z-index:99999;";
+                        document.body.appendChild(toast);
+                    }
+                    toast.style.background = "#eab308";
+                    toast.style.color = "#000";
+                    toast.innerHTML = `⚠️ Connection lost. Reconnecting (${this.reconnectAttempts}/5)...`;
+                    setTimeout(() => {
+                        console.log("Attempting reconnect", this.reconnectAttempts);
+                        this.init(this.roomCode);
+                    }, 2000);
+                    return;
                 }
-                const toast = document.createElement("div");
+
+                let toast = document.getElementById("reconnectToast") || document.createElement("div");
+                toast.id = "reconnectToast";
                 toast.style.cssText = "position:fixed;top:60px;left:50%;transform:translateX(-50%);background:#ef4444;color:#fff;padding:10px 20px;border-radius:8px;font-weight:bold;z-index:99999;";
-                toast.innerHTML = '⚠️ Host disconnected from room. <a href="./index.html" style="color:#fff;text-decoration:underline;margin-left:8px;">Exit to Lobby</a>';
+                toast.style.background = "#ef4444";
+                toast.style.color = "#fff";
+                toast.innerHTML = '⚠️ Disconnected from host room. <a href="./index.html" style="color:#fff;text-decoration:underline;margin-left:8px;">Exit to Lobby</a>';
                 document.body.appendChild(toast);
             });
 
@@ -111,6 +154,12 @@ class Client {
     }
 
     processData(d) {
+        if (d.pong) {
+            const rtt = Date.now() - d.pong;
+            if (typeof updateNetworkHUD === "function") {
+                updateNetworkHUD(rtt, this.connType || "Active");
+            }
+        }
         if (d.currentLevel && this.game.levelHandler) {
             if (this.game.levelHandler.currentLevel && this.game.levelHandler.currentLevel.name !== d.currentLevel) {
                 this.game.levelHandler.setLevel(d.currentLevel);

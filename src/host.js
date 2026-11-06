@@ -90,14 +90,46 @@ class Host {
                 currentLevel: this.game.levelHandler.currentLevel.name || "one"
             }));
 
+            // Track connection stats for HUD
+            conn.statsTimer = setInterval(() => {
+                if (conn.open && conn.peerConnection && typeof inspectPeerConnection === "function") {
+                    inspectPeerConnection(conn.peerConnection, (info) => {
+                        if (info.rtt) updateNetworkHUD(info.rtt, info.type);
+                    });
+                }
+            }, 1500);
+
             // Handle incoming data from client
             conn.on("data", (raw) => {
                 try {
                     const data = typeof raw === "string" ? JSON.parse(raw) : raw;
+                    if (data.ping) {
+                        try {
+                            conn.send(JSON.stringify({ pong: data.ping }));
+                        } catch (e) {}
+                    }
                     if (data.setUsername) {
                         conn.clientUsername = data.setUsername;
-                        if (typeof addPlayerToMenu === "function") {
-                            addPlayerToMenu(data.setUsername);
+                        // Check if reconnecting existing player
+                        let existingPlayer = this.game.players.find(p => p.onlinePlayer && p.disconnected && p.username === data.setUsername);
+                        if (existingPlayer) {
+                            console.log("Reconnecting existing player:", data.setUsername);
+                            existingPlayer.disconnected = false;
+                            if (existingPlayer.conn && existingPlayer.conn.graceTimer) {
+                                clearTimeout(existingPlayer.conn.graceTimer);
+                            }
+                            existingPlayer.conn = conn;
+                            conn.player = existingPlayer;
+                            conn.send(JSON.stringify({
+                                setColor: existingPlayer.color,
+                                playerId: existingPlayer.body.id,
+                                currentLevel: (this.game.levelHandler.currentLevel && this.game.levelHandler.currentLevel.name) || "one"
+                            }));
+                        } else {
+                            if (conn.player) conn.player.username = data.setUsername;
+                            if (typeof addPlayerToMenu === "function") {
+                                addPlayerToMenu(data.setUsername);
+                            }
                         }
                     }
                     if (data.player && conn.player) {
@@ -110,6 +142,19 @@ class Host {
 
             conn.on("close", () => {
                 console.log("Client disconnected:", conn.peer);
+                if (conn.statsTimer) clearInterval(conn.statsTimer);
+                const player = conn.player;
+                if (player) {
+                    player.disconnected = true;
+                    // Grace window: retain player body for 20s to allow mobile reconnect
+                    conn.graceTimer = setTimeout(() => {
+                        const removedId = player.body.id;
+                        player.unload();
+                        this.broadcast({
+                            playerRemoved: removedId
+                        });
+                    }, 20000);
+                }
                 if (conn.player) {
                     const removedId = conn.player.body.id;
                     conn.player.unload();
@@ -144,9 +189,16 @@ class Host {
     updateClients() {
         if (!this.connections.length) return;
         
+        this.frameCounter = (this.frameCounter || 0) + 1;
+        // Fast loop (40Hz / 25ms): player positions and inputs
+        // Slow loop (~10Hz / 100ms - every 4th tick): world syncData (doors, keys, blocks)
+        // This slashes network bandwidth & buffer queueing by 75%
+        const sendSync = (this.frameCounter % 4 === 0);
+
         const payload = JSON.stringify({
+            currentLevel: (this.game.levelHandler && this.game.levelHandler.currentLevel) ? this.game.levelHandler.currentLevel.name : "one",
             playerData: this.getPlayersData(),
-            syncData: (this.game.syncHandler) ? this.game.syncHandler.getSyncData() : null
+            syncData: (sendSync && this.game.syncHandler) ? this.game.syncHandler.getSyncData() : null
         });
 
         for (let i = 0; i < this.connections.length; i++) {

@@ -36,6 +36,7 @@ class BlockHandler {
     addBlock(pos,size,options) {
         var newBoc = new Block(this.game, pos, size, options) 
         this.game.blocks.push(newBoc)
+        if (this.game.invalidateCollidables) this.game.invalidateCollidables()
         return newBoc
     }
     updateBlocks() {
