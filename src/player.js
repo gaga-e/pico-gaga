@@ -211,10 +211,11 @@ class Player {
         
     }
     readyUp(pos) {
-        this.ready = true
-        this.unreadyPos = pos
-        this.body.isStatic = true
-        Matter.Body.setPosition(this.body, v(-1000,-100000000))
+        this.ready = true;
+        this.unreadyPos = pos;
+        this.body.isStatic = true;
+        Matter.Body.setPosition(this.body, v(-1000, -100000000));
+        if (window.AudioEngine) AudioEngine.play("enter");
     }
     unReady() {
         if (this.unreadyPos) Matter.Body.setPosition(this.body, v(this.unreadyPos.x,this.unreadyPos.y))
@@ -223,11 +224,11 @@ class Player {
 
     }
     kill() {
-        this.dead = true
-        this.frame = "dead"
-        
-        Matter.Body.setVelocity(this.body, v(this.body.velocity.x,-10))
-
+        if (this.dead) return;
+        this.dead = true;
+        this.frame = "dead";
+        Matter.Body.setVelocity(this.body, v(this.body.velocity.x, -10));
+        if (window.AudioEngine) AudioEngine.play("death");
     }
     restart(i=0) {
         this.dead = false
@@ -249,20 +250,12 @@ class Player {
         this.keys = {...keys}
     }
     testFalling() {
-        if (this.body.position.y>=window.innerHeight*3) {
-            this.restart()
-
-                Matter.Body.setPosition(this.body, v(
-                    100,
-                    -60,
-                ))
-                Matter.Body.setVelocity(this.body, v(
-                    this.body.velocity.x*0.3,
-                    this.body.velocity.y*0.3,
-                ))
-            
+        // Pit detection (fell below floor)
+        if (this.body.position.y > 650 && !this.dead) {
+            this.kill();
+            return;
         }
-       
+
         let ground = this.getGround()
        if (ground!=undefined) {
 
@@ -376,8 +369,11 @@ class Player {
     }
     jump(str=1) {
         if (this.ready) {
-            this.unReady()
-        } else if (this.onGround()) Matter.Body.setVelocity(this.body, v(this.body.velocity.x,-13*str))
+            this.unReady();
+        } else if (this.onGround()) {
+            Matter.Body.setVelocity(this.body, v(this.body.velocity.x, -13 * str));
+            if (!this.onlinePlayer && window.AudioEngine) AudioEngine.play("jump");
+        }
         //this.updatePlayerParts()
     }
 

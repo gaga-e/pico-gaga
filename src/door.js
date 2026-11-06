@@ -46,6 +46,7 @@ class Door {
                     let neededCount = activePlayers.length || this.playerCount || 1;
                     if (playerReadyCount >= neededCount && !window.clientConnection) {
                         player.game.renderer.levelTransistion(this.nextLevel);
+                        if (window.AudioEngine) AudioEngine.play("levelComplete");
                         if (window.hostConnection) {
                             hostConnection.broadcast(JSON.stringify({
                                 setLevel: this.nextLevel,

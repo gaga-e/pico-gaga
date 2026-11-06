@@ -111,7 +111,11 @@ class Host {
             conn.on("close", () => {
                 console.log("Client disconnected:", conn.peer);
                 if (conn.player) {
+                    const removedId = conn.player.body.id;
                     conn.player.unload();
+                    this.broadcast({
+                        playerRemoved: removedId
+                    });
                 }
                 const idx = this.connections.indexOf(conn);
                 if (idx !== -1) this.connections.splice(idx, 1);

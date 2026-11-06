@@ -91,6 +91,10 @@ class Client {
                 if (joinEl) {
                     joinEl.innerHTML = `<span style="color:red">Disconnected from host room.</span> <a href="./index.html">Back to Home</a>`;
                 }
+                const toast = document.createElement("div");
+                toast.style.cssText = "position:fixed;top:60px;left:50%;transform:translateX(-50%);background:#ef4444;color:#fff;padding:10px 20px;border-radius:8px;font-weight:bold;z-index:99999;";
+                toast.innerHTML = '⚠️ Host disconnected from room. <a href="./index.html" style="color:#fff;text-decoration:underline;margin-left:8px;">Exit to Lobby</a>';
+                document.body.appendChild(toast);
             });
 
             this.conn.on("error", (err) => {
@@ -107,6 +111,14 @@ class Client {
     }
 
     processData(d) {
+        if (d.currentLevel && this.game.levelHandler) {
+            if (this.game.levelHandler.currentLevel && this.game.levelHandler.currentLevel.name !== d.currentLevel) {
+                this.game.levelHandler.setLevel(d.currentLevel);
+            }
+        }
+        if (d.playerRemoved) {
+            this.removePlayerById(d.playerRemoved);
+        }
         if (d.setColor) {
             this.mainPlayer.color = d.setColor;
         }
@@ -140,7 +152,29 @@ class Client {
         }
     }
 
+    removePlayerById(id) {
+        for (let i = 0; i < this.game.players.length; i++) {
+            if (this.game.players[i].body.id === id) {
+                const p = this.game.players[i];
+                p.unload();
+                this.game.players.splice(i, 1);
+                break;
+            }
+        }
+    }
+
     updateHostPlayers(players) {
+        const activeIds = new Set(players.map(p => p.id));
+        activeIds.add(this.mainPlayer.body.id);
+
+        for (let i = this.game.players.length - 1; i >= 0; i--) {
+            const p = this.game.players[i];
+            if (p.onlinePlayer && !activeIds.has(p.body.id)) {
+                p.unload();
+                this.game.players.splice(i, 1);
+            }
+        }
+
         const findPlayerById = (id) => {
             for (let i = 0; i < this.game.players.length; i++) {
                 if (this.game.players[i].body.id === id) return this.game.players[i];

@@ -22,13 +22,18 @@ class ConstraintHandler {
                 forceStrength*Math.cos(angle),
                 forceStrength*Math.sin(angle),
             )
-            bodyA.player.constraintVel.x += forceVector.x
-            if (1) Matter.Body.setVelocity(bodyA, v(
+            bodyA.player.constraintVel.x += forceVector.x;
+            Matter.Body.setVelocity(bodyA, v(
                 bodyA.velocity.x,
-                bodyA.velocity.y+(forceVector.y),
-            ))
-        }
+                bodyA.velocity.y + forceVector.y
+            ));
 
+            bodyB.player.constraintVel.x -= forceVector.x;
+            Matter.Body.setVelocity(bodyB, v(
+                bodyB.velocity.x,
+                bodyB.velocity.y - forceVector.y
+            ));
+        }
     }
     addConstraint(options) {
         var con = new Constraint(options)

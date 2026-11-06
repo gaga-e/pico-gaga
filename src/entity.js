@@ -73,8 +73,9 @@ class Key extends Entity {
 
                 this.game.players.forEach((e)=>{
                     if (getDst(e.body.position, this.pos)<45) {
-                        this.positionUnlocked = true
-                        this.followingPlayer = e
+                        this.positionUnlocked = true;
+                        this.followingPlayer = e;
+                        if (window.AudioEngine) AudioEngine.play("key");
                     }
                 })
                 
@@ -95,8 +96,9 @@ class Key extends Entity {
                     this.vel.y += Math.sin(angle)*dst
 
             if (rawDst<10) {
-                this.targetedDoor.open = true
-                this.unload = true
+                this.targetedDoor.open = true;
+                this.unload = true;
+                if (window.AudioEngine) AudioEngine.play("door");
             }
         }
     }
