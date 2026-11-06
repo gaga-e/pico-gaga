@@ -43,6 +43,9 @@ class PlayerHandler {
         
     }
     updatePlayerControls(player) {
+        if (!player.onlinePlayer && window.keys) {
+            player.keys = { ...window.keys };
+        }
         var c = player.controls,
             keys = player.keys
         //if (window.clientConnection) if(window.clientConnection.mainPlayer.body.id==player.body.id) return true

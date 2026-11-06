@@ -320,19 +320,36 @@ class Renderer {
 
         for (let i = 0; i < this.game.doors.length; i++) {
             const but = this.game.doors[i];
-            //console.log(but.trigger)
             if (but.open) {
                 this.ctx.drawImage(levelAtlas, 
-                    591,885,
-                    161*2.5,161*2.5,
-                    (but.pos.x-1.5)*cellsize.x,(but.pos.y-2.5)*cellsize.y,cellsize.x*2,cellsize.y*2)
+                    591, 885,
+                    161 * 2.5, 161 * 2.5,
+                    (but.pos.x - 1.5) * cellsize.x, (but.pos.y - 2.5) * cellsize.y, cellsize.x * 2, cellsize.y * 2);
+
+                let readyCount = this.game.players.filter(p => p.ready).length;
+                let totalPlayers = this.game.players.filter(p => !p.dead).length;
+                this.ctx.save();
+                this.ctx.font = "bold 15px sans-serif";
+                this.ctx.fillStyle = "#4ade80";
+                this.ctx.textAlign = "center";
+                this.ctx.fillText(`🚪 Press ↓ (${readyCount}/${totalPlayers})`, (but.pos.x - 0.5) * cellsize.x, (but.pos.y - 2.8) * cellsize.y);
+                this.ctx.restore();
             } else {
                 this.ctx.drawImage(levelAtlas, 
-                    111,885,
-                    161*2.5,161*2.5,
-                    (but.pos.x-1.5)*cellsize.x,(but.pos.y-2.5)*cellsize.y,cellsize.x*2,cellsize.y*2)
+                    111, 885,
+                    161 * 2.5, 161 * 2.5,
+                    (but.pos.x - 1.5) * cellsize.x, (but.pos.y - 2.5) * cellsize.y, cellsize.x * 2, cellsize.y * 2);
+
+                if (but.lockedNoticeTimer > 0) {
+                    but.lockedNoticeTimer--;
+                    this.ctx.save();
+                    this.ctx.font = "bold 15px sans-serif";
+                    this.ctx.fillStyle = "#facc15";
+                    this.ctx.textAlign = "center";
+                    this.ctx.fillText("🗝️ Key Required!", (but.pos.x - 0.5) * cellsize.x, (but.pos.y - 2.8) * cellsize.y);
+                    this.ctx.restore();
                 }
-            
+            }
         }
     }
     renderTriggers() {

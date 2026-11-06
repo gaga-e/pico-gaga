@@ -52,7 +52,7 @@ function setPlayerWithData(player, data, updatePhysics = true) {
     Matter.Body.setPosition(player.body, data.position);
     player.direction = data.direction;
   }
-  if (!window.hostConnection && data.keys) {
+  if (data.keys) {
     player.updateKeys(data.keys);
   }
   player.color = data.color;

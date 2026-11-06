@@ -4,31 +4,27 @@ document.addEventListener("keydown", (e) => {
     if (e.code == "F1" && window.mainGame && window.mainGame.renderer) {
         mainGame.renderer.debug = !mainGame.renderer.debug;
     }
-    keys[e.key.toLowerCase()] = true;
+    const k = e.key.toLowerCase();
+    keys[k] = true;
+    if (k === "w") keys["arrowup"] = true;
+    if (k === "a") keys["arrowleft"] = true;
+    if (k === "s") keys["arrowdown"] = true;
+    if (k === "d") keys["arrowright"] = true;
 });
 
 document.addEventListener("keyup", (e) => {
-    keys[e.key.toLowerCase()] = false;
+    const k = e.key.toLowerCase();
+    keys[k] = false;
+    if (k === "w") keys["arrowup"] = false;
+    if (k === "a") keys["arrowleft"] = false;
+    if (k === "s") keys["arrowdown"] = false;
+    if (k === "d") keys["arrowright"] = false;
 });
 
 function updateControls() {
-    if (window.clientConnection && window.mainGame && window.mainGame.players && window.mainGame.players[0]) {
-        let playerControls = mainGame.players[0].controls;
-        var fu = (n) => {
-            if (keys[playerControls[n]] && !preKeys[playerControls[n]]) {
-                clientConnection.updateKey(playerControls[n], true);
-            }
-            if (!keys[playerControls[n]] && preKeys[playerControls[n]]) {
-                clientConnection.updateKey(playerControls[n], false);
-            }
-        };
-
-        fu(0);
-        fu(1);
-        fu(2);
-        fu(3);
+    if (window.mainGame && window.mainGame.players && window.mainGame.players[0]) {
+        mainGame.players[0].keys = { ...keys };
     }
-
     preKeys = { ...keys };
 }
 
