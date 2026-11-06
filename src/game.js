@@ -65,25 +65,7 @@ class Game {
                     player.updatePlayerParts();
                 }
             }
-
-            // Automatic team level restart on hazard death
-            if (!window.clientConnection && self.levelHandler && self.levelHandler.currentLevel) {
-                const anyDead = self.players.some(p => p.dead);
-                if (anyDead) {
-                    if (!self.deathRestartTimer) {
-                        self.deathRestartTimer = 75; // ~1.25s death animation delay
-                    } else {
-                        self.deathRestartTimer--;
-                        if (self.deathRestartTimer <= 0) {
-                            self.deathRestartTimer = null;
-                            self.levelHandler.setLevel(self.levelHandler.currentLevel.name);
-                        }
-                    }
-                } else {
-                    self.deathRestartTimer = null;
-                }
-            }
-        }
+        };
 
         this.currentColor = randInt(0,7)
         this.lastDelta = 0

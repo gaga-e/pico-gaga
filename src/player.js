@@ -37,10 +37,18 @@ class PlayerHandler {
 
     }
     updatePlayer(player) {
-        player.testFalling()
-        player.updatePlayerParts()
+        player.testFalling();
+        player.updatePlayerParts();
 
-        
+        if (player.dead) {
+            if (!player.respawnTimer) player.respawnTimer = 65;
+            player.respawnTimer--;
+            if (player.respawnTimer <= 0) {
+                if (!player.onlinePlayer || !window.clientConnection) {
+                    player.respawn();
+                }
+            }
+        }
     }
     updatePlayerControls(player) {
         if (!player.onlinePlayer && window.keys) {
@@ -227,31 +235,46 @@ class Player {
         if (this.dead) return;
         this.dead = true;
         this.frame = "dead";
-        Matter.Body.setVelocity(this.body, v(this.body.velocity.x, -10));
+        this.respawnTimer = 65; // ~1.1s death delay before individual respawn
+        Matter.Body.setVelocity(this.body, v(this.body.velocity.x * 0.4, -9));
         if (window.AudioEngine) AudioEngine.play("death");
     }
-    restart(i=0) {
-        this.dead = false
-        this.ready = false
-        this.body.isStatic = false
-        
-       
 
-        Matter.Body.setPosition(this.body, v(
-            150,
-            (-this.game.renderer.offset.y+-20+(-i*50))-400,
-            ))
-            Matter.Body.setVelocity(this.body, v(
-                0,0
-                ))
-            this.setScale(1)
+    restart(i = 0) {
+        this.respawn(i);
     }
+
+    respawn(i = null) {
+        this.dead = false;
+        this.ready = false;
+        this.body.isStatic = false;
+        this.body.collisionFilter = {
+            category: 1,
+            group: 0,
+            mask: 4294967295
+        };
+        const idx = (i !== null) ? i : ((this.game && this.game.players) ? Math.max(0, this.game.players.indexOf(this)) : 0);
+        const spawnX = 120 + ((idx % 4) * 35);
+        const spawnY = 120;
+        Matter.Body.setPosition(this.body, v(spawnX, spawnY));
+        Matter.Body.setVelocity(this.body, v(0, 0));
+        this.frame = "idle";
+        this.respawnTimer = 0;
+        this.setScale(1);
+    }
+
     updateKeys(keys) {
         this.keys = {...keys}
     }
+
     testFalling() {
-        // Pit detection (fell below floor)
-        if (this.body.position.y > 650 && !this.dead) {
+        // Pit detection: dynamic based on level bounds
+        let maxLevelY = 1600;
+        if (this.game && this.game.levelHandler && this.game.levelHandler.currentLevel && this.game.levelHandler.currentLevel.levelBounds) {
+            maxLevelY = this.game.levelHandler.currentLevel.levelBounds.size.y + 200;
+        }
+
+        if (this.body.position.y > maxLevelY && !this.dead) {
             this.kill();
             return;
         }
