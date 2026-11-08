@@ -59,7 +59,27 @@ class Trigger {
         this.prePlayerInside = false
     }
     testCollision() {
-        //console.log(Matter.Composite.allBodies(this.game.playerhandler.playerComp), this.rect)
-        return Matter.Query.collides(this.rect, [...Matter.Composite.allBodies(this.game.playerhandler.playerComp).filter(a=>{return !a.player.dead}),...Matter.Composite.allBodies(this.game.blockHandler.comp)])
+        const playerBodies = (this.game && this.game.playerhandler && this.game.playerhandler.playerComp)
+            ? this.game.playerhandler.playerComp.bodies
+            : [];
+        const blockBodies = (this.game && this.game.blockHandler && this.game.blockHandler.comp)
+            ? this.game.blockHandler.comp.bodies
+            : [];
+        
+        let hits = [];
+        if (playerBodies.length) {
+            const pHits = Matter.Query.collides(this.rect, playerBodies);
+            for (let i = 0; i < pHits.length; i++) {
+                const p = pHits[i].bodyA.id === this.rect.id ? pHits[i].bodyB : pHits[i].bodyA;
+                if (p.player && !p.player.dead) hits.push(pHits[i]);
+            }
+        }
+        if (blockBodies.length) {
+            const bHits = Matter.Query.collides(this.rect, blockBodies);
+            for (let i = 0; i < bHits.length; i++) {
+                hits.push(bHits[i]);
+            }
+        }
+        return hits;
     }
 }

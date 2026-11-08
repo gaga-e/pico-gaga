@@ -63,7 +63,7 @@ class PlayerHandler {
         //if (window.clientConnection) if(window.clientConnection.mainPlayer.body.id==player.body.id) return true
 
         var walking = false
-        if (!player.dead) {
+        if (!player.dead && !player.ready) {
         if (keys[c[0]]) {
             player.moveHor(-1)
             walking = true
@@ -229,18 +229,36 @@ class Player {
     }
     removeShield() {
         this.hasShield = {
-            1:false,
-            2:false,
-            3:false,
-            4:false,
+            1: false,
+            2: false,
+            3: false,
+            4: false,
+        };
+        if (this.laserShields) {
+            for (let i = 0; i < this.laserShields.length; i++) {
+                const sh = this.laserShields[i];
+                if (sh && this.game && this.game.matter) {
+                    Matter.Composite.remove(this.game.matter.engine.world, sh);
+                }
+            }
         }
-        
+        this.laserShields = [];
+        this.preHasShield = { ...this.hasShield };
+        if (this.game && this.game.invalidateCollidables) {
+            this.game.invalidateCollidables();
+        }
     }
     readyUp(pos) {
         this.ready = true;
         this.unreadyPos = pos;
         this.body.isStatic = true;
-        Matter.Body.setPosition(this.body, v(-1000, -100000000));
+        Matter.Body.setVelocity(this.body, v(0, 0));
+        this.constraintVel = v(0, 0);
+        this.body.collisionFilter = {
+            category: 2,
+            group: -1,
+            mask: 0
+        };
         if (window.AudioEngine) AudioEngine.play("enter");
     }
     unReady() {
@@ -266,6 +284,7 @@ class Player {
         this.dead = false;
         this.ready = false;
         this.body.isStatic = false;
+        this.constraintVel = v(0, 0);
         this.body.collisionFilter = {
             category: 1,
             group: 0,
@@ -362,26 +381,26 @@ class Player {
         return undefined;
     }
 
-    moveHor(dir, multi=false) {
-        var speed = 2.75*this.game.deltaTime
-        Matter.Body.setPosition(this.body, v(this.body.position.x+(dir*speed),this.body.position.y))
+    moveHor(dir, visited = null) {
+        if (!visited) visited = new Set();
+        visited.add(this);
+        var speed = 2.75 * this.game.deltaTime;
+        Matter.Body.setPosition(this.body, v(this.body.position.x + (dir * speed), this.body.position.y));
         if (this.testPlayerCollision()) {
-            
-            Matter.Body.setPosition(this.body, v(this.body.position.x-(dir*speed),this.body.position.y))
+            Matter.Body.setPosition(this.body, v(this.body.position.x - (dir * speed), this.body.position.y));
         }
-        if (dir!=this.blockingDirection) {
-            var playersOnTop = this.findPlayerGroundDectors()
+        if (dir != this.blockingDirection) {
+            var playersOnTop = this.findPlayerGroundDectors();
             for (let i = 0; i < playersOnTop.length; i++) {
-                var bodyIs = (playersOnTop[i].bodyA.label!="Rectangle Body")?"bodyA":"bodyB"
-                var player = playersOnTop[i][bodyIs].player;
-                if (!multi) player.moveHor(dir, true)
-                //player.moveHor(dir*diff)
+                var bodyIs = (playersOnTop[i].bodyA.label != "Rectangle Body") ? "bodyA" : "bodyB";
+                var player = playersOnTop[i][bodyIs] && playersOnTop[i][bodyIs].player;
+                if (player && !visited.has(player)) {
+                    player.moveHor(dir, visited);
+                }
             }
         }
-        
-        //Matter.Body.setVelocity(this.body, v((dir*speed)+this.body.velocity.x,this.body.velocity.y))
-        if (!multi) this.direction = Math.sign(dir)
-        this.updatePlayerParts()
+        this.direction = Math.sign(dir);
+        this.updatePlayerParts();
     }
     findPlayerGroundDectors() {
         var players = this.game.players,

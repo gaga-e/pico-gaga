@@ -21,6 +21,15 @@ document.addEventListener("keyup", (e) => {
     if (k === "d") keys["arrowright"] = false;
 });
 
+// Release all keys on window blur / tab switch to prevent permanently stuck running
+window.addEventListener("blur", () => {
+    for (let k in keys) {
+        keys[k] = false;
+    }
+    const btns = document.querySelectorAll(".console-btn");
+    btns.forEach(b => b.classList.remove("touch-active"));
+});
+
 function updateControls() {
     if (window.mainGame && window.mainGame.players && window.mainGame.players[0]) {
         mainGame.players[0].keys = { ...keys };

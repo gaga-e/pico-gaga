@@ -49,18 +49,21 @@ class Key extends Entity {
 
         if (!this.targetedDoor) {
             if (this.followingPlayer) {
-                var newPos = v(this.followingPlayer.body.position.x,this.followingPlayer.body.position.y-(45*this.followingPlayer.scale))
-                var rawDst = getDst(newPos, this.pos),
-                    dst = Math.min(Math.pow(Math.max(rawDst-(55*this.followingPlayer.scale),0),1.2)*0.01, 0.3),
-                    angle = -getAngle(newPos, this.pos)+(Math.PI*0.5)
-
-                if (rawDst>300) {
-                    this.followingPlayer = undefined
+                if (this.followingPlayer.dead) {
+                    this.followingPlayer = undefined;
                 } else {
-                    this.vel.x += Math.cos(angle)*dst
-                    this.vel.y += Math.sin(angle)*dst
-                }
+                    var newPos = v(this.followingPlayer.body.position.x, this.followingPlayer.body.position.y - (45 * this.followingPlayer.scale));
+                    var rawDst = getDst(newPos, this.pos),
+                        dst = Math.min(Math.pow(Math.max(rawDst - (55 * this.followingPlayer.scale), 0), 1.2) * 0.01, 0.3),
+                        angle = -getAngle(newPos, this.pos) + (Math.PI * 0.5);
 
+                    if (rawDst > 350) {
+                        this.followingPlayer = undefined;
+                    } else {
+                        this.vel.x += Math.cos(angle) * dst;
+                        this.vel.y += Math.sin(angle) * dst;
+                    }
+                }
             } else {
 
                 

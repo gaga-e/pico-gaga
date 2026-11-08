@@ -309,23 +309,22 @@ class Game {
     }
 
     bindPlayers(players) {
-        let pla = players.sort((a,b)=>{
-            return Math.sign((a.color).hashCode()-(b.color).hashCode())
-        })
-        console.log(pla)
-        for (let i = 0; i < pla.length; i++) {
-            let bodyB = pla[(i+1)%pla.length]
-            this.constraintHandler.addConstraint({
-                bodyA:pla[i],
-                bodyB:bodyB,
-            })
-            this.constraintHandler.addConstraint({
-                bodyB:pla[i],
-                bodyA:bodyB,
-            })
+        if (!players || players.length < 2) {
+            this.playersBinded = false;
+            return;
         }
-        this.playersBinded = true
-        
-                
+        let pla = players.slice().sort((a,b)=>{
+            return Math.sign((a.color).hashCode()-(b.color).hashCode());
+        });
+        console.log("Binding players:", pla.map(p => p.color));
+        for (let i = 0; i < pla.length; i++) {
+            if (pla.length === 2 && i === 1) break; // Only 1 constraint needed between 2 players
+            let bodyB = pla[(i + 1) % pla.length];
+            this.constraintHandler.addConstraint({
+                bodyA: pla[i],
+                bodyB: bodyB,
+            });
+        }
+        this.playersBinded = true;
     }
 }

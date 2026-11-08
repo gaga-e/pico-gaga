@@ -12,10 +12,20 @@ class Block {
 
         this.id = Math.floor(Math.random()*100000)
 
-        this.locked = ()=>{return Object.keys(this.pressing).length>options.minPlayers-1}
-        this.playersNeeded = ()=>{return (options.minPlayers)-Object.keys(this.pressing).length}
-        this.pressing = {}
-        this.minPlayers = options.minPlayers
+        this.minPlayers = options.minPlayers || 0;
+        this.pressing = {};
+        this.getMinPlayers = () => {
+            let totalPlayers = (this.game && this.game.players) ? this.game.players.length : 1;
+            return Math.min(this.minPlayers, Math.max(1, totalPlayers));
+        };
+        this.locked = () => {
+            let needed = this.getMinPlayers();
+            return Object.keys(this.pressing).length >= needed;
+        };
+        this.playersNeeded = () => {
+            let needed = this.getMinPlayers();
+            return Math.max(0, needed - Object.keys(this.pressing).length);
+        };
         
         this.rect = this.game.matter.addBody(v(
             (pos.x-(0.5*50))+((size.x*50)/2),

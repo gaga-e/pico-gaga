@@ -13,6 +13,7 @@ class Door {
         this.prepped = options.players;
         this.playerCount = options.playerCount;
         this.lockedNoticeTimer = 0;
+        this.transitionTriggered = false;
 
         this.onIn = (e) => {
             if (!e || !e.player) return;
@@ -24,7 +25,7 @@ class Door {
             let dx = Math.abs(playerPos.x - triggerPos.x);
             let dy = Math.abs(playerPos.y - triggerPos.y);
 
-            // Generous door trigger zone so all players standing in front can enter
+            // Generous door trigger zone
             if (dx < 60 && dy < 70) {
                 let isPressingDown = player.keys && (player.keys[player.controls[3]] || player.keys["arrowdown"] || player.keys["s"]);
 
@@ -35,23 +36,34 @@ class Door {
                     return;
                 }
 
-                player.exitTimer -= (player.game ? player.game.deltaTime : 1);
-                if (isPressingDown && !player.ready) {
+                // As soon as anybody enters / leaves through the open door,
+                // automatically advance to the next level immediately!
+                if ((isPressingDown || dx < 35) && !this.transitionTriggered) {
+                    this.transitionTriggered = true;
                     player.readyUp(triggerPos);
-                    let activePlayers = this.game.players.filter(p => !p.dead);
-                    let playerReadyCount = 0;
-                    activePlayers.forEach(p => {
-                        if (p.ready) playerReadyCount += 1;
-                    });
-                    let neededCount = activePlayers.length || this.playerCount || 1;
-                    if (playerReadyCount >= neededCount && !window.clientConnection) {
-                        player.game.renderer.levelTransistion(this.nextLevel);
-                        if (window.AudioEngine) AudioEngine.play("levelComplete");
-                        if (window.hostConnection) {
-                            hostConnection.broadcast(JSON.stringify({
-                                setLevel: this.nextLevel,
-                            }));
+
+                    if (window.AudioEngine) AudioEngine.play("levelComplete");
+
+                    if (!window.clientConnection) {
+                        // Host or Local play
+                        if (typeof setLevel === "function") {
+                            setLevel(this.nextLevel);
+                        } else if (player.game && player.game.renderer) {
+                            player.game.renderer.levelTransistion(this.nextLevel);
+                            if (window.hostConnection) {
+                                hostConnection.broadcast(JSON.stringify({
+                                    setLevel: this.nextLevel,
+                                    currentLevel: this.nextLevel
+                                }));
+                            }
                         }
+                    } else if (window.clientConnection && window.clientConnection.conn) {
+                        // Client: request host to advance the level for everyone
+                        try {
+                            window.clientConnection.conn.send(JSON.stringify({
+                                requestNextLevel: this.nextLevel
+                            }));
+                        } catch (err) {}
                     }
                 }
             }

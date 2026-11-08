@@ -17,7 +17,7 @@ class LevelHandler {
     restartLevel() {
         this.game.doors = []
         this.game.entities = []
-        this.game.button = []
+        this.game.buttons = []
         this.game.triggers = []
         this.game.constraints = []
         this.playersBinded = false

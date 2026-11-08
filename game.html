@@ -28,6 +28,14 @@
             user-select: none;
             -webkit-user-select: none;
         }
+        #c {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            touch-action: none;
+        }
         .overlay {
             position: fixed;
             top: 10px;
@@ -373,7 +381,7 @@
                 mainGame.players.forEach((e)=>{
                     if(!e.onlinePlayer) e.updateKeys(keys);
                 });
-            }, 5);
+            }, 16);
         }
 
         function startMainGame() {

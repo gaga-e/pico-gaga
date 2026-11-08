@@ -108,6 +108,18 @@ class Host {
                             conn.send(JSON.stringify({ pong: data.ping }));
                         } catch (e) {}
                     }
+                    if (data.requestNextLevel) {
+                        console.log("Client requested next level:", data.requestNextLevel);
+                        if (typeof setLevel === "function") {
+                            setLevel(data.requestNextLevel);
+                        } else if (this.game && this.game.renderer) {
+                            this.game.renderer.levelTransistion(data.requestNextLevel);
+                            this.broadcast(JSON.stringify({
+                                setLevel: data.requestNextLevel,
+                                currentLevel: data.requestNextLevel
+                            }));
+                        }
+                    }
                     if (data.setUsername) {
                         conn.clientUsername = data.setUsername;
                         // Check if reconnecting existing player

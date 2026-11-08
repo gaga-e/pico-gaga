@@ -21,9 +21,15 @@ class Renderer {
         this.border = 80
 
         this.debug = localfile
+        this.userZoom = 1.0;
+        this.userPan = { x: 0, y: 0 };
+        this.isGesturing = false;
+        if (this.canvas) this.canvas.style.touchAction = "none";
         window.onresize = ()=>{this.resizeCanvas()}
+        this.setupTouchGestures();
     }
     async levelTransistion(nextLevel) {
+        this.resetView();
         await this.setFade(1, 1000)
         await this.wait(300)
         this.game.levelHandler.setLevel(nextLevel)
@@ -94,7 +100,7 @@ class Renderer {
         requestAnimationFrame(()=>{this.renderLoop(this)})
     }
     clearCanvas() {
-        this.canvas.width = this.canvas.width
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
     renderLoop(self) {
@@ -106,22 +112,36 @@ class Renderer {
         self.renderBackground()
         self.ctx.save()
         const isMobile = window.innerWidth <= 900 || (window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+        const effectiveScale = self.globalScale * (self.userZoom || 1.0);
         let camOffsetX = self.offset.x;
         let camOffsetY = self.offset.y;
         if (isMobile && self.levelBounds) {
             const levelWidth = self.levelBounds.size.x;
-            const halfScreenWorld = (window.innerWidth * 0.5) / self.globalScale;
+            const halfScreenWorld = (window.innerWidth * 0.5) / effectiveScale;
             if (levelWidth > halfScreenWorld * 2 && self.game.players && self.game.players[0] && self.game.players[0].body) {
                 let playerX = self.game.players[0].body.position.x;
                 let clampedCamX = Math.max(halfScreenWorld, Math.min(levelWidth - halfScreenWorld, playerX));
                 camOffsetX = 25 - clampedCamX;
             }
-            if (window.innerHeight > window.innerWidth) {
+            const levelHeight = self.levelBounds.size.y;
+            const halfScreenWorldY = (window.innerHeight * 0.5) / effectiveScale;
+            if (levelHeight > halfScreenWorldY * 2 && self.game.players && self.game.players[0] && self.game.players[0].body) {
+                let playerY = self.game.players[0].body.position.y;
+                let clampedCamY = Math.max(halfScreenWorldY, Math.min(levelHeight - halfScreenWorldY, playerY));
+                camOffsetY = 25 - clampedCamY;
+            } else if (window.innerHeight > window.innerWidth) {
                 camOffsetY -= 40;
             }
         }
-        self.ctx.translate(((camOffsetX)*this.globalScale)+(window.innerWidth*0.5),((camOffsetY)*this.globalScale)+(window.innerHeight*0.5))
-        self.ctx.scale(this.globalScale,this.globalScale)
+        self.camOffsetX = camOffsetX;
+        self.camOffsetY = camOffsetY;
+        self.effectiveScale = effectiveScale;
+
+        const totalOffsetX = camOffsetX + (self.userPan ? self.userPan.x : 0);
+        const totalOffsetY = camOffsetY + (self.userPan ? self.userPan.y : 0);
+
+        self.ctx.translate(((totalOffsetX) * effectiveScale) + (window.innerWidth * 0.5), ((totalOffsetY) * effectiveScale) + (window.innerHeight * 0.5));
+        self.ctx.scale(effectiveScale, effectiveScale);
         self.renderLevel(self.game.levelHandler)
         self.renderConstraints()
 
@@ -171,6 +191,7 @@ class Renderer {
     }
 
     renderPlayer(player) {
+        if (player.ready) return;
         this.ctx.save()
         var playerPos = player.body.position
         this.ctx.translate(playerPos.x,playerPos.y)
@@ -326,13 +347,11 @@ class Renderer {
                     161 * 2.5, 161 * 2.5,
                     (but.pos.x - 1.5) * cellsize.x, (but.pos.y - 2.5) * cellsize.y, cellsize.x * 2, cellsize.y * 2);
 
-                let readyCount = this.game.players.filter(p => p.ready).length;
-                let totalPlayers = this.game.players.filter(p => !p.dead).length;
                 this.ctx.save();
                 this.ctx.font = "bold 15px sans-serif";
                 this.ctx.fillStyle = "#4ade80";
                 this.ctx.textAlign = "center";
-                this.ctx.fillText(`🚪 Press ↓ (${readyCount}/${totalPlayers})`, (but.pos.x - 0.5) * cellsize.x, (but.pos.y - 2.8) * cellsize.y);
+                this.ctx.fillText("🚪 Open! Enter to Leave (↓)", (but.pos.x - 0.5) * cellsize.x, (but.pos.y - 2.8) * cellsize.y);
                 this.ctx.restore();
             } else {
                 this.ctx.drawImage(levelAtlas, 
@@ -596,8 +615,118 @@ class Renderer {
 
         this.ctx.fillText(string, pos.x, pos.y)
     }
-    
-    
+
+    resetView() {
+        this.userZoom = 1.0;
+        this.userPan = { x: 0, y: 0 };
+    }
+
+    setupTouchGestures() {
+        let lastDist = 0;
+        let lastMid = { x: 0, y: 0 };
+
+        // Restrict gestures strictly to the upper portion of the screen above controls
+        const isAllowedGestureTouch = (touch) => {
+            if (!touch) return false;
+            if (touch.target && touch.target.closest && (touch.target.closest("#onScreenControls") || touch.target.closest(".overlay"))) {
+                return false;
+            }
+            const ctrlEl = document.getElementById("onScreenControls");
+            let controlsTop = window.innerHeight * 0.65;
+            if (ctrlEl && window.getComputedStyle(ctrlEl).display !== "none") {
+                const rect = ctrlEl.getBoundingClientRect();
+                if (rect.top > 0) {
+                    controlsTop = Math.min(controlsTop, rect.top - 20);
+                }
+            }
+            return touch.clientY < controlsTop;
+        };
+
+        const getTouchCenterAndDist = (touches) => {
+            const t0 = touches[0];
+            const t1 = touches[1];
+            const dx = t1.clientX - t0.clientX;
+            const dy = t1.clientY - t0.clientY;
+            return {
+                mid: { x: (t0.clientX + t1.clientX) * 0.5, y: (t0.clientY + t1.clientY) * 0.5 },
+                dist: Math.hypot(dx, dy)
+            };
+        };
+
+        const onTouchStart = (e) => {
+            if (e.touches.length === 2 && isAllowedGestureTouch(e.touches[0]) && isAllowedGestureTouch(e.touches[1])) {
+                this.isGesturing = true;
+                const { mid, dist } = getTouchCenterAndDist(e.touches);
+                lastDist = Math.max(dist, 10);
+                lastMid = mid;
+                if (e.cancelable) e.preventDefault();
+            } else {
+                this.isGesturing = false;
+            }
+        };
+
+        const onTouchMove = (e) => {
+            if (e.touches.length === 2 && this.isGesturing && isAllowedGestureTouch(e.touches[0]) && isAllowedGestureTouch(e.touches[1])) {
+                if (e.cancelable) e.preventDefault();
+                const { mid, dist } = getTouchCenterAndDist(e.touches);
+                const currentDist = Math.max(dist, 10);
+
+                const currentZoom = this.userZoom || 1.0;
+                const zoomFactor = currentDist / lastDist;
+                const newZoom = Math.max(0.5, Math.min(3.0, currentZoom * zoomFactor));
+
+                const W = window.innerWidth;
+                const H = window.innerHeight;
+                const oldScale = this.globalScale * currentZoom;
+                const newScale = this.globalScale * newZoom;
+
+                const camX = this.camOffsetX !== undefined ? this.camOffsetX : this.offset.x;
+                const camY = this.camOffsetY !== undefined ? this.camOffsetY : this.offset.y;
+
+                // World coordinate that was under lastMid
+                const worldX = ((lastMid.x - (W * 0.5)) / oldScale) - (camX + this.userPan.x);
+                const worldY = ((lastMid.y - (H * 0.5)) / oldScale) - (camY + this.userPan.y);
+
+                this.userZoom = newZoom;
+
+                // Keep that world point pinned to the new midpoint
+                this.userPan.x = ((mid.x - (W * 0.5)) / newScale) - worldX - camX;
+                this.userPan.y = ((mid.y - (H * 0.5)) / newScale) - worldY - camY;
+
+                // Clamp userPan so the view doesn't escape to infinity
+                const maxPan = 2500;
+                this.userPan.x = Math.max(-maxPan, Math.min(maxPan, this.userPan.x));
+                this.userPan.y = Math.max(-maxPan, Math.min(maxPan, this.userPan.y));
+
+                lastDist = currentDist;
+                lastMid = mid;
+
+                            } else if (this.isGesturing) {
+                // If any finger wandered into the controls area, stop gesture immediately
+                this.isGesturing = false;
+            }
+        };
+
+        const onTouchEnd = (e) => {
+            if (e.touches.length < 2) {
+                this.isGesturing = false;
+            }
+        };
+
+        window.addEventListener("touchstart", onTouchStart, { passive: false });
+        window.addEventListener("touchmove", onTouchMove, { passive: false });
+        window.addEventListener("touchend", onTouchEnd, { passive: false });
+        window.addEventListener("touchcancel", onTouchEnd, { passive: false });
+
+        window.addEventListener("wheel", (e) => {
+            if (e.ctrlKey) {
+                if (e.cancelable) e.preventDefault();
+                const zoomDelta = e.deltaY < 0 ? 1.06 : 0.94;
+                const currentZoom = this.userZoom || 1.0;
+                this.userZoom = Math.max(0.5, Math.min(3.0, currentZoom * zoomDelta));
+                            }
+        }, { passive: false });
+    }
 }
 
 function renderCheckLoop() {
