@@ -162,7 +162,9 @@ class Client {
         }
         if (d.currentLevel && this.game.levelHandler) {
             if (this.game.levelHandler.currentLevel && this.game.levelHandler.currentLevel.name !== d.currentLevel) {
-                this.game.levelHandler.setLevel(d.currentLevel);
+                if (!this.game.renderer || !this.game.renderer.isTransitioning) {
+                    this.game.levelHandler.setLevel(d.currentLevel);
+                }
             }
         }
         if (d.playerRemoved) {
@@ -181,7 +183,8 @@ class Client {
             this.game.renderer.levelTransistion(d.setLevel);
         }
         if (d.restartLevel) {
-            this.game.levelHandler.setLevel(mainGame.levelHandler.currentLevel.name);
+            const currentName = (this.game.levelHandler && this.game.levelHandler.currentLevel && this.game.levelHandler.currentLevel.name) || "one";
+            this.game.levelHandler.setLevel(currentName);
         }
         if (d.playerData) {
             this.updateHostPlayers(d.playerData);

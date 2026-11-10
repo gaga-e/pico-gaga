@@ -29,14 +29,18 @@ class Renderer {
         this.setupTouchGestures();
     }
     async levelTransistion(nextLevel) {
-        this.resetView();
-        await this.setFade(1, 1000)
-        await this.wait(300)
-        this.game.levelHandler.setLevel(nextLevel)
-        await this.showTitle("-- "+nextLevel+" --", 1000)
-        await this.setFade(0, 1000)
-        
-
+        if (this.isTransitioning) return;
+        this.isTransitioning = true;
+        try {
+            this.resetView();
+            await this.setFade(1, 400);
+            await this.wait(200);
+            this.game.levelHandler.setLevel(nextLevel);
+            await this.showTitle("-- " + nextLevel + " --", 600);
+            await this.setFade(0, 400);
+        } finally {
+            this.isTransitioning = false;
+        }
     }
     async wait(time) {
         return new Promise((resolve)=>{
@@ -46,25 +50,30 @@ class Renderer {
         })
     }
     async setFade(targetFade, time=10) {
+        if (this.fadeInterval) {
+            clearInterval(this.fadeInterval);
+            this.fadeInterval = null;
+        }
         return new Promise((resolve, reject) => {
-            var startTime = (new Date()).getTime(),
+            const startTime = (new Date()).getTime(),
                 startValue = this.fadeValue,
-                dst = targetFade-this.fadeValue,
-                int = setInterval(() => {
-                    let currentTime = ((new Date()).getTime())-startTime,
-                        timePer = currentTime/(time*this.transistionSpeed)
+                dst = targetFade - startValue,
+                totalDuration = Math.max(1, time * this.transistionSpeed);
 
-                    this.fadeValue = startValue+(dst*timePer)
-                    //console.log(timePer)
+            this.fadeInterval = setInterval(() => {
+                const currentTime = ((new Date()).getTime()) - startTime,
+                    timePer = Math.min(1, currentTime / totalDuration);
 
+                this.fadeValue = startValue + (dst * timePer);
 
-                    if (currentTime>(time*this.transistionSpeed)) {
-                        resolve("done")
-                        clearInterval(int)
-                    }
+                if (currentTime >= totalDuration) {
+                    this.fadeValue = targetFade;
+                    clearInterval(this.fadeInterval);
+                    this.fadeInterval = null;
+                    resolve("done");
+                }
             }, 1000/60);
-            
-          });
+        });
     }
     async showTitle(text, time) {
         this.displayedTitle = ""
@@ -100,6 +109,7 @@ class Renderer {
         requestAnimationFrame(()=>{this.renderLoop(this)})
     }
     clearCanvas() {
+        this.ctx.globalAlpha = 1.0;
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
@@ -177,11 +187,16 @@ class Renderer {
         requestAnimationFrame(()=>{self.renderLoop(self)})
     }
     renderEffects() {
-        let fade = Math.max(Math.min(this.fadeValue,1),0)
-        this.ctx.globalAlpha = fade
-        this.ctx.fillStyle = `rgb(255,255,255)`
-        this.ctx.fillRect(0,0,this.canvas.width,this.canvas.height)
-        this.renderTitle()
+        let fade = Math.max(Math.min(this.fadeValue, 1), 0);
+        if (fade > 0.001) {
+            this.ctx.save();
+            this.ctx.globalAlpha = fade;
+            this.ctx.fillStyle = "rgb(255,255,255)";
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            this.renderTitle();
+            this.ctx.restore();
+        }
+        this.ctx.globalAlpha = 1.0;
     }
     renderTitle() {
         this.ctx.fillStyle = "#c47418"

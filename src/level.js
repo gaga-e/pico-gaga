@@ -147,7 +147,6 @@ class LevelHandler {
                         bodyLength += 1
                     } else {
                         if (bodyLength>0) {
-                            console.log(bodyStart,y)
                             horizontalBodies.push({
                                 length:bodyLength,
                                 pos:v(
@@ -170,7 +169,6 @@ class LevelHandler {
                     })
                 }
             }
-            console.log(horizontalBodies)
             //================================
             let verticalWidth = verticalMap.length,
                 verticalHeight = verticalMap[0].length
@@ -249,6 +247,8 @@ class LevelHandler {
             
             for (let i = 0; i < levelData.doors.length; i++) {
                 const dor = levelData.doors[i];
+                dor.open = (dor.options && dor.options.open) || false;
+                dor.transitionTriggered = false;
                 dor.trigger = this.game.triggerHandler.addTrigger(v((dor.pos.x-0.5)*cellsize.x,(dor.pos.y-1.5)*cellsize.y),v(cellsize.x*2,cellsize.y*2))
                 this.game.doors.push(dor)
                 dor.game = this.game

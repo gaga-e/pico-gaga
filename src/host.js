@@ -84,10 +84,12 @@ class Host {
             this.connections.push(conn);
 
             // Send initial setup to client
+            const curLvl = (this.game.levelHandler && this.game.levelHandler.currentLevel && this.game.levelHandler.currentLevel.name) ? this.game.levelHandler.currentLevel.name : "one";
             conn.send(JSON.stringify({
                 setColor: playerColor,
                 playerId: clientPlayer.body.id,
-                currentLevel: this.game.levelHandler.currentLevel.name || "one"
+                currentLevel: curLvl,
+                startGame: Boolean(this.game.running || (this.game.matter && this.game.matter.running))
             }));
 
             // Track connection stats for HUD
@@ -207,8 +209,9 @@ class Host {
         // This slashes network bandwidth & buffer queueing by 75%
         const sendSync = (this.frameCounter % 4 === 0);
 
+        const curLvl = (this.game.levelHandler && this.game.levelHandler.currentLevel && this.game.levelHandler.currentLevel.name) ? this.game.levelHandler.currentLevel.name : "one";
         const payload = JSON.stringify({
-            currentLevel: (this.game.levelHandler && this.game.levelHandler.currentLevel) ? this.game.levelHandler.currentLevel.name : "one",
+            currentLevel: curLvl,
             playerData: this.getPlayersData(),
             syncData: (sendSync && this.game.syncHandler) ? this.game.syncHandler.getSyncData() : null
         });
