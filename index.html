@@ -539,6 +539,9 @@
         }
 
         function clearRecentRooms() {
+            if (!confirm("Clear your recent rooms history from this device?")) {
+                return;
+            }
             try {
                 localStorage.removeItem("pico_recent_rooms");
                 const toRemove = [];
