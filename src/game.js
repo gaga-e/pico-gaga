@@ -42,11 +42,10 @@ class Game {
             
 
             self.playerhandler.updateControls()
-            self.blockHandler.updateBlocks()
-            self.laserHandler.updateLasers()
-            self.jumppadHandler.updateJumppads()
-
             self.playerhandler.updatePlayers()
+            self.laserHandler.updateLasers()
+            self.blockHandler.updateBlocks()
+            self.jumppadHandler.updateJumppads()
             
 
             self.constraintHandler.updateConstraints()
@@ -300,7 +299,11 @@ class Game {
         if (this.runTemp) {
             this.levelHandler.loadLevel(levels.tempLevel, "tempLevel")
         } else {
-            this.levelHandler.setLevel("one")
+            let startLvl = "one";
+            if (typeof urlData !== "undefined" && urlData.lvl && typeof levels !== "undefined" && levels[urlData.lvl]) {
+                startLvl = urlData.lvl;
+            }
+            this.levelHandler.setLevel(startLvl)
         }
 
         this.running = true

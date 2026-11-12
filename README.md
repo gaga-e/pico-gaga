@@ -11,7 +11,6 @@ A real-time multiplayer cooperative puzzle-platformer web game inspired by **PIC
 - ⚡ **Zero Backend Game Server Needed:** Runs 100% peer-to-peer (P2P) over WebRTC Data Channels.
 - 🧱 **Cooperative Physics:** Jump on teammates' heads (stacking), push heavy multi-player blocks, step on pressure plates, avoid hazards, and carry keys to unlock exit doors.
 - 🚀 **One-Click Deploy:** Ready for instant static hosting on Vercel, Netlify, or GitHub Pages.
-- 🛠️ **Level Editor:** Built-in in-browser level creator (`lvl.html`).
 
 ---
 

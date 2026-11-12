@@ -46,17 +46,15 @@ class Laser {
     }
     setKillLength(len) {
         if (!this.killTrigger || !this.killTrigger.rect) return;
-        let bounds = this.killTrigger.rect.bounds;
-        let height = bounds.max[this.axis] - bounds.min[this.axis];
-        if (!height || height <= 0) height = 25;
-        let setScale = len / height;
-        if (!isFinite(setScale) || setScale <= 0.001) setScale = 0.001;
+        let safeLen = Math.max(1, len);
+        let w = this.axisB ? 25 : safeLen;
+        let h = this.axisB ? safeLen : 25;
+        let cx = this.pos.x + (this.axisX !== 0 ? (this.axisX * safeLen * 0.5) : 0);
+        let cy = this.pos.y + (this.axisY !== 0 ? (-this.axisY * safeLen * 0.5) : 0);
 
-        Matter.Body.scale(this.killTrigger.rect, this.axisB ? 1 : setScale, (!this.axisB) ? 1 : setScale);
-        Matter.Body.translate(this.killTrigger.rect, v(
-            (this.pos.x - (this.killTrigger.rect.bounds[this.bound][this.axis])) * (this.axisX ? 1 : 0),
-            (this.pos.y - (this.killTrigger.rect.bounds[this.bound][this.axis])) * (this.axisY ? 1 : 0)
-        ));
+        const temp = Matter.Bodies.rectangle(cx, cy, w, h);
+        Matter.Body.setVertices(this.killTrigger.rect, temp.vertices);
+        Matter.Body.setPosition(this.killTrigger.rect, v(cx, cy));
     }
     updateLaser() {
         this.setKillLength(this.cal().dst);

@@ -3,17 +3,16 @@ function startGame() {
     document.getElementById("menu").style.display = "none";
     document.body.classList.add("in-game");
 
-    var restartWrap = document.getElementById("restartLevelWrap");
-    if (restartWrap) restartWrap.style.display = "";
-    
-    var restartBtn = document.getElementById("restartLevel");
-    if (restartBtn) restartBtn.style.display = "";
+    var restartBtn = document.getElementById("restartLevelBtn");
+    if (restartBtn) {
+        restartBtn.style.display = (typeof urlData !== "undefined" && urlData.join) ? "none" : "flex";
+    }
 
-    // Touch controls: only shown on mobile/touch screens, completely hidden on desktop
+    // Touch controls: shown on mobile/touch screens, toggleable via joystick button on desktop
     var touchControls = document.getElementById("onScreenControls");
-    const isMobile = window.innerWidth <= 900 || (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+    const isTouch = window.innerWidth <= 900 || ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
     if (touchControls) {
-        touchControls.style.display = isMobile ? "flex" : "none";
+        touchControls.style.display = isTouch ? "flex" : "none";
     }
 
     if (!mainGame.matter.running) {

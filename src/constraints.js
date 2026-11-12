@@ -22,36 +22,37 @@ class ConstraintHandler {
         var dy = bodyB.position.y - bodyA.position.y;
         var dst = Math.sqrt(dx * dx + dy * dy);
 
-        // Slack rope: no pull if players are within 110px of each other
-        var restLength = 110;
+        // Slack zone: free movement within 100px
+        var restLength = 100;
         if (dst <= restLength || dst === 0) return;
 
-        // Unit vector from A to B
         var nx = dx / dst;
         var ny = dy / dst;
 
         var stretch = dst - restLength;
-        // Smooth proportional pull with a hard ceiling to eliminate flinging/catapulting
-        var springK = 0.04;
-        var pullForce = Math.min(stretch * springK, 4.0);
+        // Smooth quadratic ramp-in so crossing restLength feels natural, not abrupt
+        var ramp = Math.min(stretch / 60, 1.0);
+        var springK = 0.035;
+        var pullForce = Math.min(stretch * springK * ramp, 3.2);
 
-        // Damping based on relative velocity along the rope axis to kill oscillations
-        var rvx = (bodyA.velocity.x + (pA.constraintVel ? pA.constraintVel.x : 0)) -
-                  (bodyB.velocity.x + (pB.constraintVel ? pB.constraintVel.x : 0));
-        var rvy = bodyA.velocity.y - bodyB.velocity.y;
-        var damping = (rvx * nx + rvy * ny) * 0.15;
+        // Damping along the tether normal to eliminate jitter and yo-yo oscillations
+        var relVx = (bodyB.velocity.x - bodyA.velocity.x);
+        var relVy = (bodyB.velocity.y - bodyA.velocity.y);
+        var damping = (relVx * nx + relVy * ny) * 0.22;
 
-        var totalForce = Math.max(0, pullForce + damping);
-        var fx = nx * totalForce;
-        var fy = ny * totalForce;
+        var force = Math.max(0, pullForce + damping);
+        var fx = nx * force;
+        var fy = ny * force;
 
-        if (pA.constraintVel) pA.constraintVel.x = Math.max(-4, Math.min(4, pA.constraintVel.x + fx * 0.5));
-        if (pB.constraintVel) pB.constraintVel.x = Math.max(-4, Math.min(4, pB.constraintVel.x - fx * 0.5));
+        // Symmetrical horizontal pull without accumulating runaway velocity
+        if (pA.constraintVel) pA.constraintVel.x = Math.max(-3.5, Math.min(3.5, fx * 0.5));
+        if (pB.constraintVel) pB.constraintVel.x = Math.max(-3.5, Math.min(3.5, -fx * 0.5));
 
-        var newVyA = Math.max(-10, Math.min(10, bodyA.velocity.y + fy * 0.35));
-        var newVyB = Math.max(-10, Math.min(10, bodyB.velocity.y - fy * 0.35));
-        Matter.Body.setVelocity(bodyA, v(bodyA.velocity.x, newVyA));
-        Matter.Body.setVelocity(bodyB, v(bodyB.velocity.x, newVyB));
+        // Smooth vertical assist/drag when climbing or jumping together
+        var vyAdjustmentA = Math.max(-6, Math.min(6, fy * 0.25));
+        var vyAdjustmentB = Math.max(-6, Math.min(6, -fy * 0.25));
+        Matter.Body.setVelocity(bodyA, v(bodyA.velocity.x, bodyA.velocity.y + vyAdjustmentA));
+        Matter.Body.setVelocity(bodyB, v(bodyB.velocity.x, bodyB.velocity.y + vyAdjustmentB));
     }
     addConstraint(options) {
         var con = new Constraint(options);

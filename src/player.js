@@ -210,22 +210,24 @@ class Player {
         this.preHasShield = {...this.hasShield}
     }
     giveShield(angle) {
-        let axis = (angle%2),
-            laserShield = Matter.Bodies.rectangle(this.body.position.x,this.body.position.y, axis?65:10,(!axis)?65:10,{
-            noGravity:false,
-            collisionFilter:{
-                group:-1,
-                catagory:2,
-                mask:0,
+        let axis = (angle % 2),
+            laserShield = Matter.Bodies.rectangle(this.body.position.x, this.body.position.y, axis ? 65 : 10, (!axis) ? 65 : 10, {
+            isStatic: true,
+            isSensor: true,
+            collisionFilter: {
+                group: -1,
+                category: 2,
+                mask: 0,
             },
-        })
-        laserShield.shield = true
-        laserShield.shieldAngle = angle
-        laserShield.laserShieldPos = rotate(0,0, -50,0,angle*Math.PI*0.5)
-        Matter.Composite.add(this.game.matter.engine.world, laserShield)
-        this.laserShields[angle] =(laserShield)
-        console.log(this.laserShields)
-    
+        });
+        laserShield.shield = true;
+        laserShield.shieldAngle = angle;
+        laserShield.laserShieldPos = rotate(0, 0, -50, 0, angle * Math.PI * 0.5);
+        Matter.Composite.add(this.game.matter.engine.world, laserShield);
+        this.laserShields[angle] = laserShield;
+        if (this.game && this.game.invalidateCollidables) {
+            this.game.invalidateCollidables();
+        }
     }
     removeShield() {
         this.hasShield = {
@@ -291,8 +293,25 @@ class Player {
             mask: 4294967295
         };
         const idx = (i !== null) ? i : ((this.game && this.game.players) ? Math.max(0, this.game.players.indexOf(this)) : 0);
-        const spawnX = 120 + ((idx % 4) * 35);
-        const spawnY = 120;
+        const totalPlayers = (this.game && this.game.players) ? Math.max(1, this.game.players.length) : 1;
+
+        const currentLvl = this.game && this.game.levelHandler && this.game.levelHandler.currentLevel;
+        let baseX = 120;
+        let baseY = 120;
+        let playerOffset = ((idx % 4) * 35);
+
+        if (currentLvl && currentLvl.spawn) {
+            baseX = currentLvl.spawn.x;
+            baseY = currentLvl.spawn.y;
+            playerOffset = (idx - (totalPlayers - 1) * 0.5) * 28;
+        } else if (currentLvl && currentLvl.name === "twenty") {
+            baseX = 250;
+            baseY = 65;
+            playerOffset = (idx - (totalPlayers - 1) * 0.5) * 28;
+        }
+
+        const spawnX = baseX + playerOffset;
+        const spawnY = baseY;
         Matter.Body.setPosition(this.body, v(spawnX, spawnY));
         Matter.Body.setVelocity(this.body, v(0, 0));
         this.frame = "idle";
@@ -401,6 +420,14 @@ class Player {
         }
         this.direction = Math.sign(dir);
         this.updatePlayerParts();
+        if (this.laserShields && this.laserShields.length) {
+            for (let i = 0; i < this.laserShields.length; i++) {
+                const sh = this.laserShields[i];
+                if (sh) {
+                    Matter.Body.setPosition(sh, v(this.body.position.x + sh.laserShieldPos.x, this.body.position.y + sh.laserShieldPos.y));
+                }
+            }
+        }
     }
     findPlayerGroundDectors() {
         var players = this.game.players,
@@ -466,11 +493,13 @@ class Player {
         Matter.Common.set(this.body, "angularSpeed", 0)
 
         Matter.Common.set(this.body, "mass", 1)
-        Matter.Body.setPosition(this.body, v(
-            this.body.position.x+this.constraintVel.x,
-            this.body.position.y,
-        ))
-        this.constraintVel.x *= Math.pow(0.98, this.game.deltaTime)
+        if (this.constraintVel && this.constraintVel.x) {
+            Matter.Body.setPosition(this.body, v(
+                this.body.position.x + this.constraintVel.x,
+                this.body.position.y,
+            ));
+            this.constraintVel.x = 0;
+        }
 
         this.testForShield()
 

@@ -13,6 +13,9 @@ class LevelHandler {
     setLevel(name) {
         this.game.levelHandler.restartLevel()
         this.game.levelHandler.loadLevel(levels[name], name)
+        if (typeof updateLevelBadge === "function") {
+            updateLevelBadge(name)
+        }
     }
     restartLevel() {
         this.game.doors = []
@@ -55,6 +58,7 @@ class LevelHandler {
             this.currentLevel.data = levelMap
             this.currentLevel.cellsize = cellsize
             this.currentLevel.name = name
+            this.currentLevel.spawn = levelData.spawn ? v(levelData.spawn.x * cellsize.x, levelData.spawn.y * cellsize.y) : null
             this.game.buttons = levelData.buttons
 
         var width = levelMap[0].length*cellsize.x,

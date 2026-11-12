@@ -3,12 +3,22 @@ class Host {
         this.game = game;
         this.connections = [];
         
-        // Generate random 4-letter room code
-        let wordsf = (typeof words !== "undefined" && words.length) 
-            ? words.filter(a => a.length === 4) 
-            : ["PARK", "PICO", "CATZ", "JUMP", "PLAY", "STAR", "GAME"];
-        this.code = wordsf[Math.floor(Math.random() * wordsf.length)].toUpperCase();
-        this.peerId = "picopark-" + this.code;
+        // 4-character alphanumeric room code [A-Z0-9]{4}
+        let customCode = (typeof urlData !== "undefined" && urlData.host && urlData.host !== "true") 
+            ? String(urlData.host).toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4) 
+            : "";
+        if (!customCode || customCode.length !== 4) {
+            const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+            customCode = "";
+            for (let i = 0; i < 4; i++) {
+                customCode += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+        }
+        this.code = customCode;
+        this.pin = (typeof urlData !== "undefined" && urlData.pin) 
+            ? String(urlData.pin).replace(/[^A-Z0-9]/gi, "").slice(0, 4) 
+            : "";
+        this.peerId = "picopark-" + this.code + (this.pin ? ("-" + this.pin) : "");
         this.peer = null;
         this.opened = false;
     }
@@ -23,21 +33,35 @@ class Host {
         });
 
         this.peer.on("open", (id) => {
-            console.log("Host room opened successfully! Room Code:", this.code);
+            console.log("Host room opened successfully! Room Code:", this.code, "PIN:", this.pin || "None");
             this.opened = true;
             if (typeof setRoomCode === "function") {
-                setRoomCode(this.code);
+                setRoomCode(this.code + (this.pin ? (" [PIN: " + this.pin + "]") : ""));
             }
             const incomingEl = document.getElementById("incoming");
             if (incomingEl) incomingEl.textContent = " (Ready for players)";
+
+            const curLvl = (this.game.levelHandler && this.game.levelHandler.currentLevel && this.game.levelHandler.currentLevel.name) 
+                ? this.game.levelHandler.currentLevel.name 
+                : ((typeof urlData !== "undefined" && urlData.lvl) ? urlData.lvl : "one");
+            if (typeof saveRoomProgress === "function") {
+                saveRoomProgress(this.code, curLvl);
+            }
+            if (typeof updateNetworkHUD === "function") {
+                updateNetworkHUD(0);
+            }
         });
 
         this.peer.on("error", (err) => {
             console.warn("Host peer notice:", err);
             if (err.type === "unavailable-id") {
-                // If the word was recently taken on PeerJS, pick a unique code
-                this.code = Math.random().toString(36).substring(2, 6).toUpperCase();
-                this.peerId = "picopark-" + this.code;
+                // If ID is occupied, pick random 4-char code
+                const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+                this.code = "";
+                for (let i = 0; i < 4; i++) {
+                    this.code += chars.charAt(Math.floor(Math.random() * chars.length));
+                }
+                this.peerId = "picopark-" + this.code + (this.pin ? ("-" + this.pin) : "");
                 console.log("Retrying with new code:", this.code);
                 this.init();
             }
@@ -82,13 +106,18 @@ class Host {
             clientPlayer.conn = conn;
             conn.player = clientPlayer;
             this.connections.push(conn);
+            if (typeof updateNetworkHUD === "function") {
+                updateNetworkHUD(0);
+            }
 
-            // Send initial setup to client
+            // Send initial setup to client with roomCode and saved progress
             const curLvl = (this.game.levelHandler && this.game.levelHandler.currentLevel && this.game.levelHandler.currentLevel.name) ? this.game.levelHandler.currentLevel.name : "one";
             conn.send(JSON.stringify({
                 setColor: playerColor,
                 playerId: clientPlayer.body.id,
                 currentLevel: curLvl,
+                roomCode: this.code,
+                levelSaved: { room: this.code, level: curLvl },
                 startGame: Boolean(this.game.running || (this.game.matter && this.game.matter.running))
             }));
 
@@ -96,7 +125,7 @@ class Host {
             conn.statsTimer = setInterval(() => {
                 if (conn.open && conn.peerConnection && typeof inspectPeerConnection === "function") {
                     inspectPeerConnection(conn.peerConnection, (info) => {
-                        if (info.rtt) updateNetworkHUD(info.rtt, info.type);
+                        if (info.rtt !== null) updateNetworkHUD(info.rtt);
                     });
                 }
             }, 1500);
@@ -116,6 +145,7 @@ class Host {
                             setLevel(data.requestNextLevel);
                         } else if (this.game && this.game.renderer) {
                             this.game.renderer.levelTransistion(data.requestNextLevel);
+                            this.saveLevelProgress(data.requestNextLevel);
                             this.broadcast(JSON.stringify({
                                 setLevel: data.requestNextLevel,
                                 currentLevel: data.requestNextLevel
@@ -178,6 +208,9 @@ class Host {
                 }
                 const idx = this.connections.indexOf(conn);
                 if (idx !== -1) this.connections.splice(idx, 1);
+                if (typeof updateNetworkHUD === "function") {
+                    updateNetworkHUD(0);
+                }
             });
 
             conn.on("error", (err) => {
@@ -232,5 +265,15 @@ class Host {
             data.push(parsePlayerData(this.game.players[i]));
         }
         return data;
+    }
+
+    saveLevelProgress(levelName) {
+        if (!this.code || !levelName) return;
+        if (typeof saveRoomProgress === "function") {
+            saveRoomProgress(this.code, levelName);
+        }
+        this.broadcast(JSON.stringify({
+            levelSaved: { room: this.code, level: levelName }
+        }));
     }
 }

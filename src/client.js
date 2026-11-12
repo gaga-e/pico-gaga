@@ -13,11 +13,13 @@ class Client {
         this.username = name;
     }
 
-    init(roomCode) {
-        roomCode = (roomCode || "").trim().toUpperCase();
+    init(roomCode, pin) {
+        roomCode = String(roomCode || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4);
+        pin = String(pin || "").trim().replace(/[^A-Z0-9]/gi, "").slice(0, 4);
         this.roomCode = roomCode;
-        const targetPeerId = "picopark-" + roomCode;
-        console.log("Client connecting to room:", roomCode, "Target ID:", targetPeerId);
+        this.pin = pin;
+        const targetPeerId = "picopark-" + roomCode + (pin ? ("-" + pin) : "");
+        console.log("Client connecting to room:", roomCode, "PIN:", pin || "None", "Target ID:", targetPeerId);
 
         const joinEl = document.getElementById("join");
         if (joinEl) {
@@ -89,8 +91,7 @@ class Client {
                         const pc = this.conn.peerConnection;
                         if (pc && typeof inspectPeerConnection === "function") {
                             inspectPeerConnection(pc, (info) => {
-                                this.connType = info.type;
-                                if (info.rtt) updateNetworkHUD(info.rtt, info.type);
+                                if (info.rtt !== null) updateNetworkHUD(info.rtt);
                             });
                         }
                     }
@@ -126,7 +127,7 @@ class Client {
                     toast.innerHTML = `⚠️ Connection lost. Reconnecting (${this.reconnectAttempts}/5)...`;
                     setTimeout(() => {
                         console.log("Attempting reconnect", this.reconnectAttempts);
-                        this.init(this.roomCode);
+                        this.init(this.roomCode, this.pin);
                     }, 2000);
                     return;
                 }
@@ -138,6 +139,7 @@ class Client {
                 toast.style.color = "#fff";
                 toast.innerHTML = '⚠️ Disconnected from host room. <a href="./index.html" style="color:#fff;text-decoration:underline;margin-left:8px;">Exit to Lobby</a>';
                 document.body.appendChild(toast);
+                if (typeof updateNetworkHUD === "function") updateNetworkHUD(null, "Disconnected");
             });
 
             this.conn.on("error", (err) => {
@@ -157,14 +159,23 @@ class Client {
         if (d.pong) {
             const rtt = Date.now() - d.pong;
             if (typeof updateNetworkHUD === "function") {
-                updateNetworkHUD(rtt, this.connType || "Active");
+                updateNetworkHUD(rtt);
             }
+        }
+        if (d.levelSaved && typeof saveRoomProgress === "function") {
+            saveRoomProgress(d.levelSaved.room, d.levelSaved.level);
         }
         if (d.currentLevel && this.game.levelHandler) {
             if (this.game.levelHandler.currentLevel && this.game.levelHandler.currentLevel.name !== d.currentLevel) {
                 if (!this.game.renderer || !this.game.renderer.isTransitioning) {
                     this.game.levelHandler.setLevel(d.currentLevel);
                 }
+            }
+            if (typeof updateLevelBadge === "function") {
+                updateLevelBadge(d.currentLevel);
+            }
+            if (d.roomCode && typeof saveRoomProgress === "function") {
+                saveRoomProgress(d.roomCode, d.currentLevel);
             }
         }
         if (d.playerRemoved) {

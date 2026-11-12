@@ -2,160 +2,414 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="icon" href="./assets/imgs/favicon.png">
-    <title>Pico Park Web - Multiplayer Co-op</title>
+    <title>Pico Gang - Multiplayer Co-op</title>
     <style>
+        :root {
+            --bg: #090d16;
+            --card-bg: #131d31;
+            --input-bg: #0b1220;
+            --border: #22324e;
+            --border-hover: #334d75;
+            --border-focus: #38bdf8;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #0284c7;
+            --primary-hover: #0369a1;
+            --success: #16a34a;
+            --success-hover: #15803d;
+            --accent: #38bdf8;
+        }
+        * {
+            box-sizing: border-box;
+        }
         body {
             margin: 0;
-            background: #0f172a;
-            color: #f8fafc;
+            background: radial-gradient(circle at 50% 20%, #152238 0%, var(--bg) 80%);
+            color: var(--text-main);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             display: flex;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
+            padding: 16px;
         }
         .container {
-            background: #1e293b;
-            padding: 36px 40px;
-            border-radius: 16px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            background: var(--card-bg);
+            padding: 30px 24px;
+            border-radius: 24px;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.08);
             max-width: 440px;
             width: 100%;
             text-align: center;
-            box-sizing: border-box;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .logo-wrap {
+            margin-bottom: 20px;
         }
         h1 {
-            margin-top: 0;
-            font-size: 28px;
-            color: #38bdf8;
-            letter-spacing: 1px;
+            margin: 0 0 6px 0;
+            font-size: 30px;
+            color: #ffffff;
+            letter-spacing: 2px;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        h1 span.accent {
+            color: var(--accent);
+            text-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
         }
         p.subtitle {
-            color: #94a3b8;
-            font-size: 14px;
-            margin-bottom: 24px;
+            color: var(--text-muted);
+            font-size: 13px;
+            margin: 0;
+            font-weight: 500;
+            letter-spacing: 0.5px;
         }
-        .card {
-            background: #0f172a;
-            padding: 18px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            border: 1px solid #334155;
+        .nickname-box {
+            background: var(--input-bg);
+            padding: 12px 14px;
+            border-radius: 14px;
+            margin-bottom: 18px;
+            border: 1px solid var(--border);
+            text-align: left;
+            transition: border-color 0.2s;
         }
-        input[type="text"] {
-            width: 100%;
-            padding: 12px;
-            margin: 8px 0 14px 0;
-            box-sizing: border-box;
-            background: #1e293b;
-            border: 1px solid #475569;
-            border-radius: 8px;
-            color: #fff;
-            font-size: 16px;
-            text-align: center;
-            text-transform: uppercase;
-        }
-        input#usernameInpt {
-            text-transform: none;
-        }
-        input:focus {
-            outline: none;
-            border-color: #38bdf8;
-        }
-        .btn {
-            display: block;
-            width: 100%;
-            padding: 12px;
-            font-size: 16px;
-            font-weight: bold;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            box-sizing: border-box;
-        }
-        .btn-primary {
-            background: #0284c7;
-            color: white;
-            margin-bottom: 10px;
-        }
-        .btn-primary:hover {
-            background: #0369a1;
-        }
-        .btn-success {
-            background: #22c55e;
-            color: white;
-        }
-        .btn-success:hover {
-            background: #16a34a;
-        }
-        .btn-secondary {
-            background: #334155;
-            color: #cbd5e1;
-            margin-top: 10px;
-            text-decoration: none;
-            display: inline-block;
-        }
-        .btn-secondary:hover {
-            background: #475569;
-            color: #fff;
+        .nickname-box:focus-within {
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
         }
         label {
-            display: block;
-            text-align: left;
+            display: flex;
+            align-items: center;
+            font-size: 11px;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
+            font-weight: 700;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+        .req-star {
+            color: #f87171;
+            font-weight: 900;
+            font-size: 14px;
+            margin-left: 4px;
+            line-height: 1;
+        }
+        input[type="text"], input[type="password"], select {
+            width: 100%;
+            padding: 12px 14px;
+            background: var(--input-bg);
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            color: #fff;
+            font-size: 16px;
+            font-family: inherit;
+            transition: all 0.15s ease;
+        }
+        input:hover, select:hover {
+            border-color: var(--border-hover);
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+            background: #0f182b;
+        }
+        .code-input {
+            text-align: left !important;
+            padding-left: 16px !important;
+            font-size: 24px !important;
+            letter-spacing: 6px;
+            font-weight: 800;
+            text-transform: uppercase;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+        }
+        .input-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .refresh-btn {
+            flex-shrink: 0;
+            width: 52px;
+            height: 52px;
+            background: #17243c;
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+            user-select: none;
+            -webkit-user-select: none;
+            padding: 0;
+        }
+        .refresh-btn:hover {
+            background: #1e3152;
+            border-color: var(--accent);
+            color: #ffffff;
+            transform: translateY(-1.5px);
+        }
+        .refresh-btn:active {
+            transform: scale(0.92) rotate(180deg);
+        }
+        .refresh-btn:focus-visible {
+            outline: 2px solid var(--border-focus);
+            outline-offset: 2px;
+        }
+        /* Tab switcher */
+        .tab-bar {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            background: #0b1220;
+            padding: 4px;
+            border-radius: 14px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+            gap: 4px;
+        }
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
             font-size: 13px;
-            color: #94a3b8;
-            font-weight: 600;
+            font-weight: 700;
+            padding: 10px 6px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .tab-btn:hover {
+            color: #ffffff;
+        }
+        .tab-btn.active {
+            background: var(--primary);
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.45);
+        }
+        .tab-pane {
+            display: none;
+            text-align: left;
+            animation: fadeIn 0.15s ease-out;
+        }
+        .tab-pane.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .card {
+            background: var(--input-bg);
+            padding: 18px 16px;
+            border-radius: 16px;
+            margin-bottom: 18px;
+            border: 1px solid var(--border);
+        }
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 14px 20px;
+            font-size: 16px;
+            font-weight: 700;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-decoration: none;
+            user-select: none;
+            -webkit-user-select: none;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+        }
+        .btn:hover {
+            transform: translateY(-1.5px);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+        }
+        .btn:active {
+            transform: scale(0.98);
+        }
+        .btn:focus-visible {
+            outline: 2px solid var(--border-focus);
+            outline-offset: 2px;
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: var(--primary-hover);
+        }
+        .btn-success {
+            background: var(--success);
+            color: #fff;
+        }
+        .btn-success:hover {
+            background: var(--success-hover);
+        }
+        /* Save banner */
+        .save-banner {
+            background: rgba(34, 197, 94, 0.12);
+            border: 1px solid rgba(34, 197, 94, 0.35);
+            border-radius: 10px;
+            padding: 10px 12px;
+            margin: 12px 0 0 0;
+            font-size: 13px;
+            color: #86efac;
+            text-align: left;
+            line-height: 1.4;
+        }
+        .level-select-wrap {
+            margin-top: 12px;
+        }
+        /* Solo card */
+        .solo-info {
+            text-align: center;
+            padding: 10px 0;
+            color: #cbd5e1;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .solo-icon {
+            font-size: 38px;
+            margin-bottom: 8px;
         }
         .footer-links {
             margin-top: 20px;
-            font-size: 14px;
+            font-size: 13px;
         }
         .footer-links a {
-            color: #38bdf8;
+            color: var(--accent);
             text-decoration: none;
+            transition: opacity 0.15s;
         }
         .footer-links a:hover {
             text-decoration: underline;
+            opacity: 0.85;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🐾 PICO PARK</h1>
-        <p class="subtitle">Multiplayer Cooperative Puzzle Platformer</p>
+    <main class="container">
+        <header class="logo-wrap">
+            <h1>🐾 <span class="accent">PICO GANG</span></h1>
+            <p class="subtitle">Multiplayer Cooperative Puzzle Game</p>
+        </header>
 
-        <div class="card">
-            <label for="usernameInpt">YOUR NICKNAME</label>
-            <input id="usernameInpt" type="text" placeholder="e.g. Kitty" onchange="(function(){
-                localStorage.setItem('username', document.getElementById('usernameInpt').value)
-            })()">
+        <div class="nickname-box">
+            <label for="usernameInpt">Your Nickname <span class="req-star">*</span></label>
+            <input id="usernameInpt" type="text" placeholder="e.g. Kitty" maxlength="16" oninput="saveName()">
         </div>
 
-        <button class="btn btn-primary" onclick="createRoom()">
-            👑 Host New Room
-        </button>
+        <!-- Segmented Tab Navigation -->
+        <nav class="tab-bar" aria-label="Game Modes">
+            <button class="tab-btn active" id="tabBtnHost" type="button" onclick="switchTab('host')">👑 Host</button>
+            <button class="tab-btn" id="tabBtnJoin" type="button" onclick="switchTab('join')">🚀 Join</button>
+            <button class="tab-btn" id="tabBtnSolo" type="button" onclick="switchTab('solo')">🎮 Solo</button>
+        </nav>
 
-        <div class="card" style="margin-top: 16px;">
-            <label for="codeinpt">ENTER 4-LETTER ROOM CODE</label>
-            <input id="codeinpt" type="text" maxlength="8" placeholder="e.g. PARK">
-            <button class="btn btn-success" id="joinButton" onclick="joinRoom()">
+        <!-- TAB 1: HOST -->
+        <section class="tab-pane active" id="paneHost" aria-labelledby="tabBtnHost">
+            <div class="card">
+                <label for="hostCodeInpt">Room Name (4 Characters) <span class="req-star">*</span></label>
+                <div class="input-row">
+                    <input id="hostCodeInpt" class="code-input" type="text" maxlength="4" placeholder="GANG" oninput="handleHostCodeChange()">
+                    <button class="refresh-btn" id="btnRefreshHostCode" type="button" title="Generate another name" aria-label="Generate another name" onclick="generateRandomHostCode()">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="23 4 23 10 17 10"></polyline>
+                            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div style="margin-top: 14px;">
+                    <label for="hostPinInpt">4-Digit PIN</label>
+                    <input id="hostPinInpt" type="password" maxlength="4" placeholder="e.g. 1234">
+                </div>
+
+                <div id="hostSaveBanner" class="save-banner" style="display: none;"></div>
+
+                <div id="hostLevelSelectWrap" class="level-select-wrap" style="display: none;">
+                    <label for="hostLevelSelect">Replay / Start From Level</label>
+                    <select id="hostLevelSelect"></select>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" id="btnLaunchHost" type="button" onclick="launchHost()">
+                👑 Host Room
+            </button>
+        </section>
+
+        <!-- TAB 2: JOIN -->
+        <section class="tab-pane" id="paneJoin" aria-labelledby="tabBtnJoin">
+            <div class="card">
+                <label for="joinCodeInpt">Room Name (4 Characters) <span class="req-star">*</span></label>
+                <input id="joinCodeInpt" class="code-input" type="text" maxlength="4" placeholder="GANG" oninput="handleJoinCodeChange()">
+
+                <div style="margin-top: 14px;">
+                    <label for="joinPinInpt">4-Digit PIN (if set by host)</label>
+                    <input id="joinPinInpt" type="password" maxlength="4" placeholder="e.g. 1234">
+                </div>
+
+                <div id="joinSaveBanner" class="save-banner" style="display: none;"></div>
+            </div>
+
+            <button class="btn btn-success" id="btnLaunchJoin" type="button" onclick="launchJoin()">
                 🚀 Join Room
             </button>
-        </div>
+        </section>
 
-        <button class="btn btn-secondary" onclick="playSolo()">
-            🎮 Play Solo / Local Co-op
-        </button>
+        <!-- TAB 3: SOLO -->
+        <section class="tab-pane" id="paneSolo" aria-labelledby="tabBtnSolo">
+            <div class="card">
+                <div class="solo-info">
+                    <div class="solo-icon">🎮</div>
+                    <div>Play solo or couch co-op on this device using Arrow Keys and WASD!</div>
+                </div>
+            </div>
 
-        <div class="footer-links">
-            <a href="./lvl.html">🛠️ Level Editor</a>
-        </div>
-    </div>
+            <button class="btn btn-primary" type="button" onclick="launchSolo()">
+                🎮 Play Solo Now
+            </button>
+        </section>
+    </main>
 
     <script>
+        const LEVEL_ORDER = [
+            "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
+            "eleven", "tweleve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty"
+        ];
+
+        function getRoomSave(code) {
+            if (!code) return null;
+            const clean = String(code).toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4);
+            if (!clean) return null;
+            try {
+                const raw = localStorage.getItem("pico_save_" + clean);
+                return raw ? JSON.parse(raw) : null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function sanitizeCode(val) {
+            return String(val || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4);
+        }
+
+        // Initialize user name
         let savedName = localStorage.getItem("username") || "Player" + Math.floor(Math.random() * 900 + 100);
         document.getElementById("usernameInpt").value = savedName;
         localStorage.setItem("username", savedName);
@@ -166,31 +420,165 @@
             return name;
         }
 
-        function createRoom() {
-            saveName();
-            window.location.href = './game.html?host=true';
+        // Tab Switching
+        function switchTab(tab) {
+            document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+            document.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
+
+            if (tab === "host") {
+                document.getElementById("tabBtnHost").classList.add("active");
+                document.getElementById("paneHost").classList.add("active");
+            } else if (tab === "join") {
+                document.getElementById("tabBtnJoin").classList.add("active");
+                document.getElementById("paneJoin").classList.add("active");
+            } else if (tab === "solo") {
+                document.getElementById("tabBtnSolo").classList.add("active");
+                document.getElementById("paneSolo").classList.add("active");
+            }
         }
 
-        function joinRoom() {
-            saveName();
-            let code = document.getElementById("codeinpt").value.trim().toUpperCase();
-            if (!code) {
-                alert("Please enter a room code!");
+        // Host code live inspection (Clean: only show if saved progress exists)
+        function handleHostCodeChange() {
+            const inpt = document.getElementById("hostCodeInpt");
+            const clean = sanitizeCode(inpt.value);
+            inpt.value = clean;
+
+            const banner = document.getElementById("hostSaveBanner");
+            const selectWrap = document.getElementById("hostLevelSelectWrap");
+            const select = document.getElementById("hostLevelSelect");
+            const launchBtn = document.getElementById("btnLaunchHost");
+
+            if (clean.length < 4) {
+                banner.style.display = "none";
+                selectWrap.style.display = "none";
+                launchBtn.innerHTML = "👑 Host Room";
                 return;
             }
-            window.location.href = `./game.html?join=${encodeURIComponent(code)}`;
+
+            const save = getRoomSave(clean);
+            if (save && save.currentLevel) {
+                const curIdx = LEVEL_ORDER.indexOf(save.currentLevel);
+                const curNum = curIdx !== -1 ? (curIdx + 1) : 1;
+                const highIdx = LEVEL_ORDER.indexOf(save.highestLevel || save.currentLevel);
+                const highNum = highIdx !== -1 ? (highIdx + 1) : curNum;
+
+                banner.style.display = "block";
+                banner.innerHTML = `💾 <b>Saved Progress:</b> Room <b>${clean}</b> is at <b>Level ${curNum}</b> (Highest: Level ${highNum})`;
+
+                select.innerHTML = "";
+                for (let i = 0; i <= highIdx; i++) {
+                    const opt = document.createElement("option");
+                    opt.value = LEVEL_ORDER[i];
+                    opt.textContent = `Level ${i + 1}`;
+                    if (LEVEL_ORDER[i] === save.currentLevel) opt.selected = true;
+                    select.appendChild(opt);
+                }
+                selectWrap.style.display = "block";
+                launchBtn.innerHTML = `👑 Resume ${clean} (Level ${curNum})`;
+            } else {
+                banner.style.display = "none";
+                selectWrap.style.display = "none";
+                launchBtn.innerHTML = `👑 Host Room ${clean}`;
+            }
         }
 
-        function playSolo() {
+        // Join code live inspection
+        function handleJoinCodeChange() {
+            const inpt = document.getElementById("joinCodeInpt");
+            const clean = sanitizeCode(inpt.value);
+            inpt.value = clean;
+
+            const banner = document.getElementById("joinSaveBanner");
+            if (clean.length === 4) {
+                const save = getRoomSave(clean);
+                if (save && save.currentLevel) {
+                    const curIdx = LEVEL_ORDER.indexOf(save.currentLevel);
+                    const curNum = curIdx !== -1 ? (curIdx + 1) : 1;
+                    banner.style.display = "block";
+                    banner.innerHTML = `💾 You have local progress saved for <b>${clean}</b> at <b>Level ${curNum}</b>.`;
+                } else {
+                    banner.style.display = "none";
+                }
+            } else {
+                banner.style.display = "none";
+            }
+        }
+
+        // Launchers
+        function launchHost() {
+            saveName();
+            let code = sanitizeCode(document.getElementById("hostCodeInpt").value);
+            if (!code || code.length !== 4) {
+                alert("Please enter a 4-character room name (letters and numbers only)!");
+                document.getElementById("hostCodeInpt").focus();
+                return;
+            }
+            const pin = document.getElementById("hostPinInpt").value.trim().replace(/[^A-Z0-9]/gi, "").slice(0, 4);
+            const select = document.getElementById("hostLevelSelect");
+            const lvl = (select && select.style.display !== "none" && select.value) ? select.value : "one";
+
+            let url = `./game.html?host=${encodeURIComponent(code)}`;
+            if (pin) url += `&pin=${encodeURIComponent(pin)}`;
+            if (lvl && lvl !== "one") url += `&lvl=${encodeURIComponent(lvl)}`;
+            window.location.href = url;
+        }
+
+        function launchJoin() {
+            saveName();
+            const code = sanitizeCode(document.getElementById("joinCodeInpt").value);
+            if (!code || code.length !== 4) {
+                alert("Please enter a valid 4-character room name!");
+                document.getElementById("joinCodeInpt").focus();
+                return;
+            }
+            const pin = document.getElementById("joinPinInpt").value.trim().replace(/[^A-Z0-9]/gi, "").slice(0, 4);
+
+            let url = `./game.html?join=${encodeURIComponent(code)}`;
+            if (pin) url += `&pin=${encodeURIComponent(pin)}`;
+            window.location.href = url;
+        }
+
+        function launchSolo() {
             saveName();
             window.location.href = './game.html';
         }
 
-        document.getElementById("codeinpt").addEventListener("keypress", function(event) {
-            if (event.key === "Enter") {
-                event.preventDefault();
-                joinRoom();
+        // Generate friendly 4-character gaming room name
+        function generateRandomCode() {
+            const popularNames = [
+                "GANG", "PICO", "CATZ", "PARK", "PLAY", "STAR", "HERO", "COOL",
+                "BEAR", "LION", "DOGS", "EPIC", "CREW", "TEAM", "CATS", "FIRE",
+                "BOSS", "APEX", "BOLT", "WARP", "NEON", "ZOOM", "RUSH", "NOVA"
+            ];
+            if (Math.random() < 0.7) {
+                return popularNames[Math.floor(Math.random() * popularNames.length)];
             }
+            const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+            let res = "";
+            for (let i = 0; i < 4; i++) {
+                res += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return res;
+        }
+
+        function generateRandomHostCode() {
+            const code = generateRandomCode();
+            const inpt = document.getElementById("hostCodeInpt");
+            if (inpt) {
+                inpt.value = code;
+                handleHostCodeChange();
+            }
+        }
+
+        window.onload = () => {
+            generateRandomHostCode();
+        };
+
+        document.getElementById("hostCodeInpt").addEventListener("keypress", (e) => {
+            if (e.key === "Enter") launchHost();
+        });
+        document.getElementById("joinCodeInpt").addEventListener("keypress", (e) => {
+            if (e.key === "Enter") launchJoin();
         });
     </script>
 </body>

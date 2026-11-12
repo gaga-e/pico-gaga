@@ -36,7 +36,9 @@ class Renderer {
             await this.setFade(1, 400);
             await this.wait(200);
             this.game.levelHandler.setLevel(nextLevel);
-            await this.showTitle("-- " + nextLevel + " --", 600);
+            const lvlNum = (typeof LEVEL_ORDER !== "undefined") ? (LEVEL_ORDER.indexOf(nextLevel) + 1) : 0;
+            const displayTitle = lvlNum > 0 ? ("-- LEVEL " + lvlNum + " --") : ("-- " + nextLevel.toUpperCase() + " --");
+            await this.showTitle(displayTitle, 600);
             await this.setFade(0, 400);
         } finally {
             this.isTransitioning = false;
