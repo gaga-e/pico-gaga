@@ -260,6 +260,81 @@
         .btn-success:hover {
             background: var(--success-hover);
         }
+        /* Recent Rooms Section */
+        .recent-section {
+            margin-top: 14px;
+            text-align: left;
+        }
+        .recent-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        .recent-clear-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 4px;
+            transition: color 0.15s;
+        }
+        .recent-clear-btn:hover {
+            color: #f87171;
+        }
+        .recent-chips-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .recent-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: var(--input-bg);
+            border: 1.5px solid var(--border);
+            border-radius: 9999px;
+            color: var(--text-main);
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            user-select: none;
+            font-family: inherit;
+        }
+        .recent-chip:hover {
+            border-color: var(--accent);
+            background: #17243c;
+            color: var(--accent);
+            transform: translateY(-1px);
+        }
+        .recent-chip:active {
+            transform: translateY(0);
+        }
+        .recent-chip.active {
+            border-color: var(--accent);
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--accent);
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+        }
+        .recent-chip-lvl {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 9999px;
+            background: rgba(2, 132, 199, 0.25);
+            color: #38bdf8;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+        }
         /* Save banner */
         .save-banner {
             background: rgba(34, 197, 94, 0.12);
@@ -335,6 +410,14 @@
                     </button>
                 </div>
 
+                <div id="hostRecentWrap" class="recent-section" style="display: none;">
+                    <div class="recent-header">
+                        <span>Recent Rooms (From Cache)</span>
+                        <button type="button" class="recent-clear-btn" onclick="clearRecentRooms()">Clear</button>
+                    </div>
+                    <div id="hostRecentList" class="recent-chips-grid"></div>
+                </div>
+
                 <div style="margin-top: 14px;">
                     <label for="hostPinInpt">4-Digit PIN</label>
                     <input id="hostPinInpt" type="password" maxlength="4" placeholder="e.g. 1234">
@@ -358,6 +441,14 @@
             <div class="card">
                 <label for="joinCodeInpt">Room Name (4 Characters) <span class="req-star">*</span></label>
                 <input id="joinCodeInpt" class="code-input" type="text" maxlength="4" placeholder="GANG" oninput="handleJoinCodeChange()">
+
+                <div id="joinRecentWrap" class="recent-section" style="display: none;">
+                    <div class="recent-header">
+                        <span>Recent Rooms (From Cache)</span>
+                        <button type="button" class="recent-clear-btn" onclick="clearRecentRooms()">Clear</button>
+                    </div>
+                    <div id="joinRecentList" class="recent-chips-grid"></div>
+                </div>
 
                 <div style="margin-top: 14px;">
                     <label for="joinPinInpt">4-Digit PIN (if set by host)</label>
@@ -407,6 +498,122 @@
 
         function sanitizeCode(val) {
             return String(val || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4);
+        }
+
+        // Recent Rooms from Cache
+        function getRecentRooms() {
+            let recent = [];
+            try {
+                const stored = JSON.parse(localStorage.getItem("pico_recent_rooms") || "[]");
+                if (Array.isArray(stored)) recent = stored;
+            } catch (e) {}
+
+            try {
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith("pico_save_")) {
+                        const code = key.replace("pico_save_", "").toUpperCase().slice(0, 4);
+                        if (code && code.length === 4 && !recent.includes(code)) {
+                            recent.push(code);
+                        }
+                    }
+                }
+            } catch (e) {}
+
+            recent = recent
+                .map(sanitizeCode)
+                .filter(c => c && c.length === 4);
+
+            return [...new Set(recent)].slice(0, 8);
+        }
+
+        function addRecentRoom(code) {
+            const clean = sanitizeCode(code);
+            if (!clean || clean.length !== 4) return;
+            try {
+                let recent = getRecentRooms().filter(c => c !== clean);
+                recent.unshift(clean);
+                if (recent.length > 8) recent = recent.slice(0, 8);
+                localStorage.setItem("pico_recent_rooms", JSON.stringify(recent));
+            } catch (e) {}
+        }
+
+        function clearRecentRooms() {
+            try {
+                localStorage.removeItem("pico_recent_rooms");
+                const toRemove = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith("pico_save_")) toRemove.push(key);
+                }
+                toRemove.forEach(k => localStorage.removeItem(k));
+            } catch (e) {}
+            renderRecentRooms();
+            handleHostCodeChange();
+            handleJoinCodeChange();
+        }
+
+        function renderRecentRooms() {
+            const recents = getRecentRooms();
+            const joinWrap = document.getElementById("joinRecentWrap");
+            const joinList = document.getElementById("joinRecentList");
+            const hostWrap = document.getElementById("hostRecentWrap");
+            const hostList = document.getElementById("hostRecentList");
+
+            if (!recents || recents.length === 0) {
+                if (joinWrap) joinWrap.style.display = "none";
+                if (hostWrap) hostWrap.style.display = "none";
+                return;
+            }
+
+            function buildChip(code, targetInptId, onChangeHandler) {
+                const chip = document.createElement("button");
+                chip.type = "button";
+                chip.className = "recent-chip";
+                chip.setAttribute("aria-label", `Select room ${code}`);
+
+                const save = getRoomSave(code);
+                let lvlHtml = "";
+                if (save && save.currentLevel) {
+                    const idx = LEVEL_ORDER.indexOf(save.currentLevel);
+                    const num = idx !== -1 ? (idx + 1) : 1;
+                    lvlHtml = `<span class="recent-chip-lvl">Lvl ${num}</span>`;
+                }
+
+                chip.innerHTML = `<span>${code}</span>${lvlHtml}`;
+
+                const curVal = sanitizeCode(document.getElementById(targetInptId) ? document.getElementById(targetInptId).value : "");
+                if (curVal === code) {
+                    chip.classList.add("active");
+                }
+
+                chip.onclick = () => {
+                    const inpt = document.getElementById(targetInptId);
+                    if (inpt) {
+                        inpt.value = code;
+                        onChangeHandler();
+                        inpt.focus();
+                    }
+                    if (chip.parentElement) {
+                        chip.parentElement.querySelectorAll(".recent-chip").forEach(c => c.classList.remove("active"));
+                    }
+                    chip.classList.add("active");
+                };
+
+                return chip;
+            }
+
+            if (joinWrap && joinList) {
+                joinList.innerHTML = "";
+                recents.forEach(c => joinList.appendChild(buildChip(c, "joinCodeInpt", handleJoinCodeChange)));
+                joinWrap.style.display = "block";
+            }
+
+            if (hostWrap && hostList) {
+                hostList.innerHTML = "";
+                recents.forEach(c => hostList.appendChild(buildChip(c, "hostCodeInpt", handleHostCodeChange)));
+                hostWrap.style.display = "block";
+            }
         }
 
         // Initialize user name
@@ -480,6 +687,13 @@
                 selectWrap.style.display = "none";
                 launchBtn.innerHTML = `👑 Host Room ${clean}`;
             }
+
+            const hostList = document.getElementById("hostRecentList");
+            if (hostList) {
+                hostList.querySelectorAll(".recent-chip").forEach(chip => {
+                    chip.classList.toggle("active", chip.textContent.trim().startsWith(clean));
+                });
+            }
         }
 
         // Join code live inspection
@@ -502,6 +716,13 @@
             } else {
                 banner.style.display = "none";
             }
+
+            const joinList = document.getElementById("joinRecentList");
+            if (joinList) {
+                joinList.querySelectorAll(".recent-chip").forEach(chip => {
+                    chip.classList.toggle("active", chip.textContent.trim().startsWith(clean));
+                });
+            }
         }
 
         // Launchers
@@ -513,6 +734,7 @@
                 document.getElementById("hostCodeInpt").focus();
                 return;
             }
+            addRecentRoom(code);
             const pin = document.getElementById("hostPinInpt").value.trim().replace(/[^A-Z0-9]/gi, "").slice(0, 4);
             const select = document.getElementById("hostLevelSelect");
             const lvl = (select && select.style.display !== "none" && select.value) ? select.value : "one";
@@ -531,6 +753,7 @@
                 document.getElementById("joinCodeInpt").focus();
                 return;
             }
+            addRecentRoom(code);
             const pin = document.getElementById("joinPinInpt").value.trim().replace(/[^A-Z0-9]/gi, "").slice(0, 4);
 
             let url = `./game.html?join=${encodeURIComponent(code)}`;
@@ -572,6 +795,7 @@
 
         window.onload = () => {
             generateRandomHostCode();
+            renderRecentRooms();
         };
 
         document.getElementById("hostCodeInpt").addEventListener("keypress", (e) => {
