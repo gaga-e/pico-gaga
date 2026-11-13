@@ -83,18 +83,19 @@ class Laser {
 
             let signedDist = 0;
             let coversEmitter = false;
+            const isDynamicBlocker = Boolean(mainBody.shield || mainBody.isBlock);
             if (this.axisX > 0) {
                 signedDist = mainBody.bounds.min.x - this.pos.x;
-                if (signedDist < 0 && mainBody.bounds.max.x >= this.pos.x - 30) coversEmitter = true;
+                if (isDynamicBlocker && signedDist < 0 && mainBody.bounds.max.x >= this.pos.x - 30) coversEmitter = true;
             } else if (this.axisX < 0) {
                 signedDist = this.pos.x - mainBody.bounds.max.x;
-                if (signedDist < 0 && mainBody.bounds.min.x <= this.pos.x + 30) coversEmitter = true;
+                if (isDynamicBlocker && signedDist < 0 && mainBody.bounds.min.x <= this.pos.x + 30) coversEmitter = true;
             } else if (this.axisY > 0) {
                 signedDist = this.pos.y - mainBody.bounds.max.y;
-                if (signedDist < 0 && mainBody.bounds.min.y <= this.pos.y + 30) coversEmitter = true;
+                if (isDynamicBlocker && signedDist < 0 && mainBody.bounds.min.y <= this.pos.y + 30) coversEmitter = true;
             } else if (this.axisY < 0) {
                 signedDist = mainBody.bounds.min.y - this.pos.y;
-                if (signedDist < 0 && mainBody.bounds.max.y >= this.pos.y - 30) coversEmitter = true;
+                if (isDynamicBlocker && signedDist < 0 && mainBody.bounds.max.y >= this.pos.y - 30) coversEmitter = true;
             } else {
                 signedDist = Math.abs(this.pos[this.axis] - mainBody.bounds[this.bound][this.axis]);
             }

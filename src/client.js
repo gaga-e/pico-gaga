@@ -251,7 +251,22 @@ class Client {
                 if (pData.shields) {
                     this.mainPlayer.hasShield = { ...pData.shields };
                 }
-                if (pData.dead !== undefined) this.mainPlayer.dead = pData.dead;
+                const wasDead = this.mainPlayer.dead;
+                if (pData.dead && !wasDead) {
+                    this.mainPlayer.kill();
+                } else if (pData.dead === false && wasDead) {
+                    this.mainPlayer.dead = false;
+                    this.mainPlayer.ready = false;
+                    this.mainPlayer.frame = "idle";
+                    this.mainPlayer.respawnTimer = 0;
+                    if (pData.position) {
+                        Matter.Body.setPosition(this.mainPlayer.body, pData.position);
+                    }
+                    Matter.Body.setVelocity(this.mainPlayer.body, v(0, 0));
+                }
+                if (pData.ready !== undefined) {
+                    this.mainPlayer.ready = pData.ready;
+                }
                 if (pData.scale && typeof this.mainPlayer.setScale === "function") {
                     this.mainPlayer.setScale(pData.scale);
                 }

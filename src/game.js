@@ -60,6 +60,7 @@ class Game {
                 const player = self.players[i];
                 if (player.unloading) {
                     self.players.splice(i, 1);
+                    i--;
                 } else {
                     player.updatePlayerParts();
                 }
@@ -113,7 +114,10 @@ class Game {
         for (let i = 0; i < this.entities.length; i++) {
             const ent = this.entities[i];
             ent.update()
-            if (ent.unload) this.entities.splice(i, 1)
+            if (ent.unload) {
+                this.entities.splice(i, 1)
+                i--;
+            }
         }
     }
 
@@ -177,6 +181,7 @@ class Game {
                     open:e.open,
                     pos:e.pos,
                     id:e.id,
+                    nextLevel:e.nextLevel,
                 } )
             }
             return es
@@ -197,24 +202,37 @@ class Game {
             if (foundEnt) {
                 let ent = foundEnt
                 ent.open = key.open
+                if (key.nextLevel) ent.nextLevel = key.nextLevel
                 
             } else {
                 console.log("create door")
                 let cellsize = v(50,50)
                 let dor = new Door(key.pos, {
-                    nextLevel: "one",
+                    nextLevel: key.nextLevel || "one",
                     open: key.open,
                   })
                   dor.trigger = this.triggerHandler.addTrigger(v((dor.pos.x-0.5)*cellsize.x,(dor.pos.y-1.5)*cellsize.y),v(cellsize.x*2,cellsize.y*2))
                 dor.id = key.id
                 this.doors.push(dor)
                 dor.game = this
+                dor.trigger.onIn = dor.onIn
                 
             }
 
 
             
         })
+        this.syncHandler.addControl("lasers", () => {
+            let es = [];
+            for (let i = 0; i < this.lasers.length; i++) {
+                es.push({ index: i, enabled: Boolean(this.lasers[i].enabled) });
+            }
+            return es;
+        }, (d) => {
+            if (d && this.lasers[d.index]) {
+                this.lasers[d.index].enabled = Boolean(d.enabled);
+            }
+        });
         this.syncHandler.addControl("blocks", ()=>{
             let es = []
             for (let i = 0; i < this.blocks.length; i++) {

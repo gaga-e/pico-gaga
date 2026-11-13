@@ -107,7 +107,7 @@ class Host {
             conn.player = clientPlayer;
             this.connections.push(conn);
 
-            // Assign level shield if current level uses shields
+            // Assign level shield or tether if current level uses them
             if (this.game.levelHandler && this.game.levelHandler.currentLevel) {
                 const curName = this.game.levelHandler.currentLevel.name;
                 const curLvlData = (typeof levels !== "undefined" && levels[curName]) ? levels[curName] : null;
@@ -117,6 +117,10 @@ class Host {
                         const shield = curLvlData.playersHaveShields[idx % curLvlData.playersHaveShields.length];
                         clientPlayer.hasShield[shield] = true;
                     }
+                }
+                if (curLvlData && curLvlData.playersBinded && typeof this.game.bindPlayers === "function") {
+                    this.game.constraints = [];
+                    this.game.bindPlayers(this.game.players);
                 }
             }
 
@@ -176,12 +180,16 @@ class Host {
                             if (existingPlayer.conn && existingPlayer.conn.graceTimer) {
                                 clearTimeout(existingPlayer.conn.graceTimer);
                             }
+                            if (conn.player && conn.player !== existingPlayer) {
+                                conn.player.unload();
+                            }
                             existingPlayer.conn = conn;
                             conn.player = existingPlayer;
                             conn.send(JSON.stringify({
                                 setColor: existingPlayer.color,
                                 playerId: existingPlayer.body.id,
-                                currentLevel: (this.game.levelHandler.currentLevel && this.game.levelHandler.currentLevel.name) || "one"
+                                currentLevel: (this.game.levelHandler.currentLevel && this.game.levelHandler.currentLevel.name) || "one",
+                                startGame: Boolean(this.game.running || (this.game.matter && this.game.matter.running))
                             }));
                         } else {
                             if (conn.player) conn.player.username = data.setUsername;
@@ -191,7 +199,16 @@ class Host {
                         }
                     }
                     if (data.player && conn.player) {
+                        // Host is authoritative for shields, death/respawn, scale, and door ready state
                         delete data.player.shields;
+                        delete data.player.dead;
+                        delete data.player.scale;
+                        delete data.player.ready;
+                        if (conn.player.dead) {
+                            delete data.player.position;
+                            delete data.player.velocity;
+                            delete data.player.frame;
+                        }
                         setPlayerWithData(conn.player, data.player);
                     }
                 } catch (e) {
@@ -207,19 +224,13 @@ class Host {
                     player.disconnected = true;
                     // Grace window: retain player body for 20s to allow mobile reconnect
                     conn.graceTimer = setTimeout(() => {
+                        if (!player.disconnected) return;
                         const removedId = player.body.id;
                         player.unload();
                         this.broadcast({
                             playerRemoved: removedId
                         });
                     }, 20000);
-                }
-                if (conn.player) {
-                    const removedId = conn.player.body.id;
-                    conn.player.unload();
-                    this.broadcast({
-                        playerRemoved: removedId
-                    });
                 }
                 const idx = this.connections.indexOf(conn);
                 if (idx !== -1) this.connections.splice(idx, 1);

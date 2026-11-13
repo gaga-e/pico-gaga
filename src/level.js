@@ -11,13 +11,13 @@ class LevelHandler {
 
     }
     setLevel(name) {
-        this.game.levelHandler.restartLevel()
+        this.game.levelHandler.restartLevel(false)
         this.game.levelHandler.loadLevel(levels[name], name)
         if (typeof updateLevelBadge === "function") {
             updateLevelBadge(name)
         }
     }
-    restartLevel() {
+    restartLevel(broadcastRestart = true) {
         this.game.doors = []
         this.game.entities = []
         this.game.buttons = []
@@ -43,7 +43,7 @@ class LevelHandler {
 
         if (this.game.invalidateCollidables) this.game.invalidateCollidables()
 
-        if (window.hostConnection) {
+        if (broadcastRestart && window.hostConnection) {
             window.hostConnection.broadcast(JSON.stringify({restartLevel:true}))
         }
         

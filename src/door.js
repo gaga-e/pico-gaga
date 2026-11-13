@@ -18,6 +18,8 @@ class Door {
         this.onIn = (e) => {
             if (!e || !e.player) return;
             let player = e.player;
+            if (player.dead) return;
+            if (window.clientConnection && player.onlinePlayer) return;
             if (!this.trigger || !this.trigger.rect) return;
 
             let triggerPos = this.trigger.rect.position;

@@ -280,6 +280,7 @@ var levels = {
     ],
   },
   seven: {
+    spawn: v(1.5, 2.4),
     jumppads: [],
     playersHaveShields: [3, 1],
     playersBinded: false,
@@ -447,6 +448,7 @@ var levels = {
     ],
   },
   eleven: {
+    spawn: v(1.2, 2.4),
     jumppads: [],
     playersHaveShields: [1, 4],
     playersBinded: false,
@@ -503,6 +505,7 @@ var levels = {
     ],
   },
   tweleve: {
+    spawn: v(4.5, 1.8),
     jumppads: [],
     playersHaveShields: [2],
     playersBinded: false,

@@ -186,9 +186,13 @@ class Player {
         if (this.game.invalidateCollidables) this.game.invalidateCollidables()
     }
     unload() {
-        this.unloading = true
-        Matter.Composite.remove(this.game.playerhandler.playerComp, this.body)
-        if (this.game.invalidateCollidables) this.game.invalidateCollidables()
+        this.unloading = true;
+        this.removeShield();
+        if (this.game && Array.isArray(this.game.constraints)) {
+            this.game.constraints = this.game.constraints.filter(c => c.bodyA !== this && c.bodyB !== this);
+        }
+        Matter.Composite.remove(this.game.playerhandler.playerComp, this.body);
+        if (this.game.invalidateCollidables) this.game.invalidateCollidables();
     }
     testForShield() {
         let a = [1,2,3,4]
@@ -298,20 +302,31 @@ class Player {
         const currentLvl = this.game && this.game.levelHandler && this.game.levelHandler.currentLevel;
         let baseX = 120;
         let baseY = 120;
-        let playerOffset = ((idx % 4) * 35);
+        let col = idx % 4;
+        let row = Math.floor(idx / 4);
+        let playerOffset = col * 32;
+        let verticalOffset = -row * 48;
 
         if (currentLvl && currentLvl.spawn) {
             baseX = currentLvl.spawn.x;
             baseY = currentLvl.spawn.y;
-            playerOffset = (idx - (totalPlayers - 1) * 0.5) * 28;
+            col = idx % 3;
+            row = Math.floor(idx / 3);
+            const colsInRow = Math.min(3, totalPlayers - row * 3);
+            playerOffset = (col - (colsInRow - 1) * 0.5) * 26;
+            verticalOffset = -row * 48;
         } else if (currentLvl && currentLvl.name === "twenty") {
             baseX = 250;
             baseY = 65;
-            playerOffset = (idx - (totalPlayers - 1) * 0.5) * 28;
+            col = idx % 3;
+            row = Math.floor(idx / 3);
+            const colsInRow = Math.min(3, totalPlayers - row * 3);
+            playerOffset = (col - (colsInRow - 1) * 0.5) * 26;
+            verticalOffset = -row * 48;
         }
 
         const spawnX = baseX + playerOffset;
-        const spawnY = baseY;
+        const spawnY = baseY + verticalOffset;
         Matter.Body.setPosition(this.body, v(spawnX, spawnY));
         Matter.Body.setVelocity(this.body, v(0, 0));
         this.frame = "idle";
@@ -345,9 +360,9 @@ class Player {
        }
        if (this.dead&&!this.preDead) {
         this.body.collisionFilter = {
-            mask:0,
-            group:1,
-            mask:-1,
+            category: 2,
+            group: -1,
+            mask: 0,
         }
        } else if (!this.dead&&this.preDead) {
         this.body.collisionFilter = {
@@ -523,6 +538,7 @@ class Player {
         
     }
     setScale(targetScale) {
+        if (!targetScale || Math.abs(targetScale - this.scale) < 0.0001) return;
         var scaleFactor = targetScale/this.scale
         Matter.Body.scale(this.body, scaleFactor,scaleFactor)
         Matter.Body.scale(this.groundDetector, scaleFactor,scaleFactor)
