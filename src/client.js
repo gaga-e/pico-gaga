@@ -247,7 +247,16 @@ class Client {
 
         for (let i = 0; i < players.length; i++) {
             const pData = players[i];
-            if (pData.id === this.mainPlayer.body.id) continue;
+            if (pData.id === this.mainPlayer.body.id) {
+                if (pData.shields) {
+                    this.mainPlayer.hasShield = { ...pData.shields };
+                }
+                if (pData.dead !== undefined) this.mainPlayer.dead = pData.dead;
+                if (pData.scale && typeof this.mainPlayer.setScale === "function") {
+                    this.mainPlayer.setScale(pData.scale);
+                }
+                continue;
+            }
 
             let found = findPlayerById(pData.id);
             if (!found) {

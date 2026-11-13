@@ -112,7 +112,7 @@ function setPlayerWithData(player, data, updatePhysics = true) {
   if (data.color) player.color = data.color;
   if (data.frame) player.frame = data.frame;
   if (data.ready !== undefined) player.ready = data.ready;
-  if (data.shields) player.hasShield = data.shields;
+  if (data.shields && !window.hostConnection) player.hasShield = { ...data.shields };
   if (data.dead !== undefined) player.dead = data.dead;
   if (typeof player.setScale === "function" && data.scale) {
     player.setScale(data.scale);

@@ -106,6 +106,20 @@ class Host {
             clientPlayer.conn = conn;
             conn.player = clientPlayer;
             this.connections.push(conn);
+
+            // Assign level shield if current level uses shields
+            if (this.game.levelHandler && this.game.levelHandler.currentLevel) {
+                const curName = this.game.levelHandler.currentLevel.name;
+                const curLvlData = (typeof levels !== "undefined" && levels[curName]) ? levels[curName] : null;
+                if (curLvlData && curLvlData.playersHaveShields && curLvlData.playersHaveShields.length > 0) {
+                    const idx = this.game.players.indexOf(clientPlayer);
+                    if (idx !== -1) {
+                        const shield = curLvlData.playersHaveShields[idx % curLvlData.playersHaveShields.length];
+                        clientPlayer.hasShield[shield] = true;
+                    }
+                }
+            }
+
             if (typeof updateNetworkHUD === "function") {
                 updateNetworkHUD(0);
             }
@@ -177,6 +191,7 @@ class Host {
                         }
                     }
                     if (data.player && conn.player) {
+                        delete data.player.shields;
                         setPlayerWithData(conn.player, data.player);
                     }
                 } catch (e) {

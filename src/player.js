@@ -222,7 +222,7 @@ class Player {
         });
         laserShield.shield = true;
         laserShield.shieldAngle = angle;
-        laserShield.laserShieldPos = rotate(0, 0, -50, 0, angle * Math.PI * 0.5);
+        laserShield.laserShieldPos = rotate(0, 0, -32, 0, angle * Math.PI * 0.5);
         Matter.Composite.add(this.game.matter.engine.world, laserShield);
         this.laserShields[angle] = laserShield;
         if (this.game && this.game.invalidateCollidables) {
