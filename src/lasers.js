@@ -25,12 +25,16 @@ class Laser {
 
         let width = 25;
         let height = 100000;
+        let reachBack = 35;
+        let totalLen = height + reachBack;
+        let triggerPos = v(
+            this.pos.x + (height * 0.5 - reachBack * 0.5) * this.axisX,
+            this.pos.y + (height * 0.5 - reachBack * 0.5) * -this.axisY
+        );
+
         this.trigger = this.game.triggerHandler.addTrigger(
-            v(
-                this.pos.x + (height / 2) * this.axisX,
-                this.pos.y + (height / 2) * -this.axisY
-            ),
-            this.axisB ? v(width, height) : v(height, width)
+            triggerPos,
+            this.axisB ? v(width, totalLen) : v(totalLen, width)
         );
 
         this.trigger.norender = true;
@@ -46,6 +50,10 @@ class Laser {
     }
     setKillLength(len) {
         if (!this.killTrigger || !this.killTrigger.rect) return;
+        if (len <= 0) {
+            Matter.Body.setPosition(this.killTrigger.rect, v(-99999, -99999));
+            return;
+        }
         let safeLen = Math.max(1, len);
         let w = this.axisB ? 25 : safeLen;
         let h = this.axisB ? safeLen : 25;
@@ -74,19 +82,26 @@ class Laser {
             if (mainBody.player) continue;
 
             let signedDist = 0;
+            let coversEmitter = false;
             if (this.axisX > 0) {
                 signedDist = mainBody.bounds.min.x - this.pos.x;
+                if (signedDist < 0 && mainBody.bounds.max.x >= this.pos.x - 30) coversEmitter = true;
             } else if (this.axisX < 0) {
                 signedDist = this.pos.x - mainBody.bounds.max.x;
+                if (signedDist < 0 && mainBody.bounds.min.x <= this.pos.x + 30) coversEmitter = true;
             } else if (this.axisY > 0) {
                 signedDist = this.pos.y - mainBody.bounds.max.y;
+                if (signedDist < 0 && mainBody.bounds.min.y <= this.pos.y + 30) coversEmitter = true;
             } else if (this.axisY < 0) {
                 signedDist = mainBody.bounds.min.y - this.pos.y;
+                if (signedDist < 0 && mainBody.bounds.max.y >= this.pos.y - 30) coversEmitter = true;
             } else {
                 signedDist = Math.abs(this.pos[this.axis] - mainBody.bounds[this.bound][this.axis]);
             }
 
-            if (signedDist >= 0) {
+            if (coversEmitter) {
+                minDst = 0;
+            } else if (signedDist >= 0) {
                 minDst = Math.min(signedDist, minDst);
             }
         }

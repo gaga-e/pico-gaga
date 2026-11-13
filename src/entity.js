@@ -57,7 +57,7 @@ class Key extends Entity {
                         dst = Math.min(Math.pow(Math.max(rawDst - (55 * this.followingPlayer.scale), 0), 1.2) * 0.01, 0.3),
                         angle = -getAngle(newPos, this.pos) + (Math.PI * 0.5);
 
-                    if (rawDst > 350) {
+                    if (rawDst > 600) {
                         this.followingPlayer = undefined;
                     } else {
                         this.vel.x += Math.cos(angle) * dst;
